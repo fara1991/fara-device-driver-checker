@@ -1,5 +1,7 @@
 namespace FaraDeviceDriverChecker.Utilities;
 
+using System.Globalization;
+
 /// <summary>
 /// 案内コマンドに埋め込む値（レジストリのキー名、フォルダー名など）が、引用符の外へ抜け出せないかを確認する。
 /// 安全でない値のときは、案内コマンドを表示しない側に倒す。
@@ -12,12 +14,20 @@ public static class CommandGuard
 
     /// <summary>二重引用符 "…" の中に埋め込んでよい値か（cmd・PowerShell共通）。</summary>
     public static bool IsSafeInDoubleQuotes(string? value)
-        => IsPlain(value) && value!.IndexOfAny((DoubleQuoteChars + "$`%").ToCharArray()) < 0;
+        => IsPlain(value) && value!.IndexOfAny(DoubleQuoteUnsafe) < 0;
 
     /// <summary>単一引用符 '…' の中（PowerShell）に埋め込んでよい値か。</summary>
     public static bool IsSafeInSingleQuotes(string? value)
-        => IsPlain(value) && value!.IndexOfAny(SingleQuoteChars.ToCharArray()) < 0;
+        => IsPlain(value) && value!.IndexOfAny(SingleQuoteUnsafe) < 0;
+
+    private static readonly char[] DoubleQuoteUnsafe = (DoubleQuoteChars + "$`%").ToCharArray();
+    private static readonly char[] SingleQuoteUnsafe = SingleQuoteChars.ToCharArray();
 
     private static bool IsPlain(string? value)
-        => !string.IsNullOrEmpty(value) && !value.Any(char.IsControl);
+        => !string.IsNullOrEmpty(value) && !value.Any(IsHiddenOrControl);
+
+    /// <summary>制御文字と、表示と実行内容をずらせる不可視の文字（Bidi 制御、ゼロ幅、行・段落の区切り）。</summary>
+    private static bool IsHiddenOrControl(char c)
+        => char.GetUnicodeCategory(c) is UnicodeCategory.Control or UnicodeCategory.Format
+            or UnicodeCategory.LineSeparator or UnicodeCategory.ParagraphSeparator;
 }

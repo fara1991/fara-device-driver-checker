@@ -113,6 +113,19 @@ public class LogicTests
         => Assert.Equal(expected, CommandGuard.IsSafeInDoubleQuotes(value));
 
     [Theory]
+    [InlineData(0x202E)] // 右から左への上書き（Bidi 制御）
+    [InlineData(0x200B)] // ゼロ幅スペース
+    [InlineData(0xFEFF)] // ゼロ幅の BOM
+    [InlineData(0x2028)] // 行区切り
+    [InlineData(0x2029)] // 段落区切り
+    public void 表示と実行内容をずらせる不可視文字を含む値は拒否する(int codePoint)
+    {
+        var value = "a" + (char)codePoint + "b";
+        Assert.False(CommandGuard.IsSafeInDoubleQuotes(value));
+        Assert.False(CommandGuard.IsSafeInSingleQuotes(value));
+    }
+
+    [Theory]
     [InlineData("C:\\Program Files\\Intel\\Intel(R) Rapid Storage Technology", true)]
     [InlineData("HID\\VID_1532&PID_0306&MI_00&COL00\\2&1AF591FA&1&0000", true)]
     [InlineData("C:\\a'; calc; '", false)]

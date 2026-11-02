@@ -174,6 +174,11 @@ public class LeftoverScanner
     private static string RemoveFolderCommand(string path, string options)
         => CommandGuard.IsSafeInSingleQuotes(path) ? $"Remove-Item -LiteralPath '{path}' {options}" : "";
 
+    private static string DeleteDriverCommand(string publishedName)
+        => Regex.IsMatch(publishedName, @"^oem\d+\.inf$", RegexOptions.IgnoreCase)
+            ? $"pnputil /delete-driver {publishedName}"
+            : "";
+
     private static string GetPnpDeviceCommand(string? instanceId)
         => CommandGuard.IsSafeInSingleQuotes(instanceId)
             ? $"Get-PnpDevice -InstanceId '{instanceId}' | Format-List *"
@@ -632,7 +637,8 @@ public class LeftoverScanner
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         var psi = new ProcessStartInfo
         {
-            FileName = "pnputil",
+            // 同名の実行ファイルを置かれても読み込まないよう、System32 の絶対パスを指定する
+            FileName = Path.Combine(Environment.SystemDirectory, "pnputil.exe"),
             Arguments = "/enum-drivers",
             UseShellExecute = false,
             RedirectStandardOutput = true,
@@ -703,7 +709,7 @@ public class LeftoverScanner
                              (isStorage ? "ストレージ系のため削除対象として提案しません。" : "");
                 Add(CatDuplicate, used || isStorage ? LeftoverSeverity.Info : LeftoverSeverity.Caution,
                     $"同名ドライバーの旧版: {old.OriginalName} ({old.PublishedName})", old.PublishedName, detail,
-                    used || isStorage ? "" : $"pnputil /delete-driver {old.PublishedName}", isStorage);
+                    used || isStorage ? "" : DeleteDriverCommand(old.PublishedName), isStorage);
             }
         }
     }
