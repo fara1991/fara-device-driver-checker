@@ -230,6 +230,8 @@ public class LeftoverScanner
         using var products = hklm.OpenSubKey(InstallerProductsPath);
         if (products == null) return;
 
+        CheckUserDataOrphans(hklm, products.GetSubKeyNames().ToHashSet(StringComparer.OrdinalIgnoreCase));
+
         foreach (var packed in products.GetSubKeyNames())
         {
             var guid = MsiGuid.Unpack(packed);
@@ -281,6 +283,34 @@ public class LeftoverScanner
         }
     }
 
+    /// <summary>Installer\Products を消した後に Installer\UserData だけが残った登録を検出する。</summary>
+    private void CheckUserDataOrphans(RegistryKey hklm, HashSet<string> productPacked)
+    {
+        try
+        {
+            using var userData = hklm.OpenSubKey(UserDataProductsPath);
+            if (userData == null) return;
+
+            foreach (var packed in userData.GetSubKeyNames())
+            {
+                if (productPacked.Contains(packed) || MsiGuid.Unpack(packed) is not { } guid) continue;
+
+                using var props = userData.OpenSubKey($@"{packed}\InstallProperties");
+                var name = props == null ? "" : ReadString(props, "DisplayName") ?? "";
+                var userDataPath = $@"HKLM\{UserDataProductsPath}\{packed}";
+                Add(CatRegistry, LeftoverSeverity.Caution,
+                    $"Installer\\UserData にだけ残る登録: {(name != "" ? name : guid)}", userDataPath,
+                    $"Installer\\Products\\{packed} が無いのに UserData が残っています（製品コード {guid}）。" +
+                    "Products だけを手動で削除した後などに起きます。",
+                    DeleteWithBackupCommand(userDataPath, $"backup-userdata-{packed}"));
+            }
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or SecurityException)
+        {
+            _userDataDenied = true;
+        }
+    }
+
     /// <summary>MSI が同梱する INF が、ドライバーストアに存在するか確認する。</summary>
     private void CheckMsiInfReferences(string label, string productCode, string localPackage, HashSet<string> storeInfNames)
     {
@@ -292,11 +322,16 @@ public class LeftoverScanner
             .Where(f => f.EndsWith(".inf", StringComparison.OrdinalIgnoreCase))
             .Distinct(StringComparer.OrdinalIgnoreCase);
 
+        // DIFx のドライバー登録テーブルがある MSI だけを、非ストレージ系の検出対象にする
+        // （SDK のように INF を単なるファイルとして同梱するだけの MSI の誤検出を避ける）
+        var hasDriverTable = db.QueryFirstColumn("SELECT `Component` FROM `MsiDriverPackages`").Count > 0;
+
         foreach (var inf in infNames)
         {
             if (storeInfNames.Contains(inf)) continue;
 
             var isStorage = StorageGuard.IsStorageName(inf);
+            if (!isStorage && !hasDriverTable) continue;
             Add(CatDriverRef, isStorage ? LeftoverSeverity.Review : LeftoverSeverity.Caution,
                 $"{label} が参照する INF がドライバーストアにありません: {inf}", productCode,
                 "アンインストール時にドライバー削除（DiUninstallDriver）が 0x490 (ERROR_NOT_FOUND) で失敗し、" +
