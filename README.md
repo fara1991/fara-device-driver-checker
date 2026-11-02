@@ -1,4 +1,4 @@
-﻿# FaraDeviceDriverChecker
+﻿# FaraWindowsChecker
 
 Windowsのデバイスドライバーの状態を診断し、アンインストール後に残った登録・フォルダー・サービス（残骸）を検出するGUIツールです。必要に応じて、Windows Updateを通じたドライバーの更新もサポートします。
 
@@ -66,9 +66,9 @@ Intel Rapid Storage Technologyが、ドライバーストアに無い `iaAHCIC.i
 
 インストールは不要です。
 
-1. [最新リリース](https://github.com/fara1991/fara-windows-checker/releases)から `FaraDeviceDriverChecker-vX.X.X-win-x64.zip` をダウンロード
+1. [最新リリース](https://github.com/fara1991/fara-windows-checker/releases)から `FaraWindowsChecker-vX.X.X-win-x64.zip` をダウンロード
 2. ZIPファイルを解凍
-3. `FaraDeviceDriverChecker.exe` を実行
+3. `FaraWindowsChecker.exe` を実行
 
 ## 使い方
 
@@ -117,7 +117,7 @@ Intel Rapid Storage Technologyが、ドライバーストアに無い `iaAHCIC.i
 ## プロジェクト構成
 
 ```
-FaraDeviceDriverChecker/
+FaraWindowsChecker/
 ├── Models/
 │   ├── DeviceInfo.cs        # デバイス情報モデル
 │   ├── DeviceCategory.cs    # デバイスカテゴリ定義
@@ -153,7 +153,7 @@ FaraDeviceDriverChecker/
 ### テスト
 
 ```bash
-dotnet test FaraDeviceDriverChecker.Tests
+dotnet test FaraWindowsChecker.Tests
 ```
 
 実機の読み取り専用チェックを含むため、Windows上で実行してください。
@@ -172,7 +172,7 @@ dotnet restore
 dotnet build
 
 # リリースビルド（単一実行ファイル）
-dotnet publish FaraDeviceDriverChecker/FaraDeviceDriverChecker.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o ./publish
+dotnet publish FaraWindowsChecker/FaraWindowsChecker.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o ./publish
 ```
 
 ## サポート

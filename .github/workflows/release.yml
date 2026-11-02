@@ -12,7 +12,7 @@ on:
         default: 'v1.0.0'
 
 env:
-  APP_NAME: FaraDeviceDriverChecker
+  APP_NAME: FaraWindowsChecker
 
 jobs:
   build-and-release:
@@ -67,7 +67,7 @@ jobs:
 
       - name: Build and Publish
         run: |
-          dotnet publish FaraDeviceDriverChecker/FaraDeviceDriverChecker.csproj `
+          dotnet publish FaraWindowsChecker/FaraWindowsChecker.csproj `
             -c Release `
             -r win-x64 `
             --self-contained `
@@ -91,7 +91,7 @@ jobs:
           body: |
             ## ${{ env.APP_NAME }} ${{ steps.set_tag.outputs.RELEASE_TAG }}
 
-            Windowsのデバイスドライバー状態診断・更新支援ツール
+            Windowsのデバイスドライバーの診断と、アンインストール後の残骸の検出を行うツール
 
             ### ダウンロード
             - **${{ env.APP_NAME }}-${{ steps.set_tag.outputs.RELEASE_TAG }}-win-x64.zip**: Windows 64bit版
