@@ -7,11 +7,11 @@ namespace FaraWindowsChecker.Tests;
 public class MainViewModelMenuTests
 {
     [Fact]
-    public void最初は_ドライバー診断のタブが選ばれている()
+    public void 最初は_ドライバー診断のタブが選ばれている()
         => Assert.Equal(MainViewModel.DriversTabIndex, new MainViewModel().SelectedTabIndex);
 
     [Fact]
-    public voidタブを切り替えるコマンドで_表示中のタブが変わり_変更が通知される()
+    public void タブを切り替えるコマンドで_表示中のタブが変わり_変更が通知される()
     {
         var viewModel = new MainViewModel();
         var changed = new List<string?>();
@@ -27,7 +27,7 @@ public class MainViewModelMenuTests
     }
 
     [Fact]
-    public void同じタブを選び直しても_通知しない()
+    public void 同じタブを選び直しても_通知しない()
     {
         var viewModel = new MainViewModel();
         var notified = false;
@@ -39,7 +39,7 @@ public class MainViewModelMenuTests
     }
 
     [Fact]
-    public void再スキャンは_表示中のタブに応じて_実行できるかが変わる()
+    public void 再スキャンは_表示中のタブに応じて_実行できるかが変わる()
     {
         var viewModel = new MainViewModel();
 
@@ -58,7 +58,7 @@ public class MainViewModelMenuTests
     }
 
     [Fact]
-    public voidスキャンの前は_エクスポートと_ドライバーの更新は実行できない()
+    public void スキャンの前は_エクスポートと_ドライバーの更新は実行できない()
     {
         var viewModel = new MainViewModel();
 
