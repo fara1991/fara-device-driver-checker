@@ -176,7 +176,7 @@ public class MainViewModel : INotifyPropertyChanged
     private async Task ScanLeftoverAsync()
     {
         IsLoading = true;
-        StatusMessage = "アンインストール漏れ（残骸）をチェック中...";
+        StatusMessage = "アンインストール漏れ（残骸）をチェック中…";
         LeftoverItems.Clear();
         SelectedLeftover = null;
 
@@ -187,10 +187,10 @@ public class MainViewModel : INotifyPropertyChanged
             foreach (var item in result.Items) LeftoverItems.Add(item);
 
             var selectedCategory = _filterCategory;
-            CategoryOptions.Clear();
-            CategoryOptions.Add(FilterAll);
+            // 先頭の「すべて」は残す（全削除すると、コンボボックスの選択が空になって戻らない）
+            while (CategoryOptions.Count > 1) CategoryOptions.RemoveAt(CategoryOptions.Count - 1);
             foreach (var category in result.Items.Select(i => i.Category).Distinct().Order()) CategoryOptions.Add(category);
-            if (!CategoryOptions.Contains(selectedCategory)) _filterCategory = FilterAll;
+            _filterCategory = CategoryOptions.Contains(selectedCategory) ? selectedCategory : FilterAll;
             OnPropertyChanged(nameof(FilterCategory));
             OnFilterChanged();
 
@@ -276,7 +276,7 @@ public class MainViewModel : INotifyPropertyChanged
         {
             var allClasses = selectedCategories.SelectMany(c => c.Classes).ToArray();
             var categoryNames = string.Join(", ", selectedCategories.Select(c => c.Name));
-            StatusMessage = $"{categoryNames}をスキャン中...";
+            StatusMessage = $"{categoryNames}をスキャン中…";
 
             var devices = await Task.Run(() => _deviceService.GetDevices(allClasses));
 
@@ -302,7 +302,7 @@ public class MainViewModel : INotifyPropertyChanged
     private async Task RunUpdateAsync()
     {
         IsLoading = true;
-        StatusMessage = "ドライバーを更新中...";
+        StatusMessage = "ドライバーを更新中…";
 
         try
         {

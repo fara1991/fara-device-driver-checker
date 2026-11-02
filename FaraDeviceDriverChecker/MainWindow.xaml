@@ -6,7 +6,7 @@
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:vm="clr-namespace:FaraDeviceDriverChecker.ViewModels"
         mc:Ignorable="d"
-        Title="FaraDeviceDriverChecker" Height="780" Width="1100"
+        Title="FaraDeviceDriverChecker" Height="780" Width="1100" MinHeight="700" MinWidth="900"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource MaterialDesign.Brush.Background}"
         TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
@@ -14,7 +14,7 @@
         TextElement.FontSize="13"
         TextOptions.TextFormattingMode="Ideal"
         TextOptions.TextRenderingMode="Auto"
-        FontFamily="{DynamicResource MaterialDesignFont}">
+        FontFamily="Segoe UI, Yu Gothic UI, Meiryo UI">
 
     <Window.DataContext>
         <vm:MainViewModel />
@@ -22,6 +22,12 @@
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+        <!-- 長い文字列は省略記号で切り、全文を ToolTip で見られるようにする -->
+        <Style x:Key="CellEllipsis" TargetType="TextBlock">
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="ToolTip" Value="{Binding RelativeSource={RelativeSource Self}, Path=Text}" />
+        </Style>
     </Window.Resources>
 
     <materialDesign:DialogHost>
@@ -88,7 +94,8 @@
 
                             <TextBlock Grid.Row="0" Text="カテゴリ" FontWeight="Bold" Margin="8,0,0,8" />
 
-                            <StackPanel Grid.Row="1">
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
                                 <CheckBox Content="すべて"
                                           IsChecked="{Binding IsAllSelected}"
                                           IsEnabled="{Binding IsNotLoading}"
@@ -108,6 +115,7 @@
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
                             </StackPanel>
+                            </ScrollViewer>
 
                             <StackPanel Grid.Row="2" Margin="0,8,0,0">
                                 <Button Command="{Binding ScanCommand}"
@@ -160,41 +168,16 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="デバイス名" Binding="{Binding Name}" Width="*">
-                                <DataGridTextColumn.ElementStyle>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-                                    </Style>
-                                </DataGridTextColumn.ElementStyle>
-                            </DataGridTextColumn>
-                            <DataGridTextColumn Header="製造元" Binding="{Binding Manufacturer}" Width="150">
-                                <DataGridTextColumn.ElementStyle>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-                                    </Style>
-                                </DataGridTextColumn.ElementStyle>
-                            </DataGridTextColumn>
-                            <DataGridTextColumn Header="クラス" Binding="{Binding Class}" Width="120">
-                                <DataGridTextColumn.ElementStyle>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-                                    </Style>
-                                </DataGridTextColumn.ElementStyle>
-                            </DataGridTextColumn>
-                            <DataGridTextColumn Header="バージョン" Binding="{Binding DriverVersion}" Width="120">
-                                <DataGridTextColumn.ElementStyle>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-                                    </Style>
-                                </DataGridTextColumn.ElementStyle>
-                            </DataGridTextColumn>
-                            <DataGridTextColumn Header="日付" Binding="{Binding DriverDate}" Width="120">
-                                <DataGridTextColumn.ElementStyle>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-                                    </Style>
-                                </DataGridTextColumn.ElementStyle>
-                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="デバイス名" Binding="{Binding Name}" Width="*"
+                                                ElementStyle="{StaticResource CellEllipsis}" />
+                            <DataGridTextColumn Header="製造元" Binding="{Binding Manufacturer}" Width="150"
+                                                ElementStyle="{StaticResource CellEllipsis}" />
+                            <DataGridTextColumn Header="クラス" Binding="{Binding Class}" Width="120"
+                                                ElementStyle="{StaticResource CellEllipsis}" />
+                            <DataGridTextColumn Header="バージョン" Binding="{Binding DriverVersion}" Width="120"
+                                                ElementStyle="{StaticResource CellEllipsis}" />
+                            <DataGridTextColumn Header="日付" Binding="{Binding DriverDate}" Width="120"
+                                                ElementStyle="{StaticResource CellEllipsis}" />
                         </DataGrid.Columns>
                     </DataGrid>
                 </materialDesign:Card>
@@ -227,24 +210,24 @@
                                 <TextBlock Text="{Binding AdminStatus}" Margin="0,8,0,0" Opacity="0.7" />
                                 <TextBlock TextWrapping="Wrap" Margin="0,4,0,0" Opacity="0.7"
                                            Text="このチェックは読み取り専用です。削除などは自動で実行しません。案内コマンドは内容を確認し、管理者権限で手動実行してください。ストレージ系ドライバー（iastorvdなど）は削除対象として提案しません。" />
-                                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                                    <TextBox Width="260" VerticalAlignment="Center"
+                                <WrapPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                    <TextBox Width="260" VerticalAlignment="Center" Margin="0,0,12,8"
                                              materialDesign:HintAssist.Hint="キーワードで絞り込み（空白区切りでAND）"
                                              Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}" />
-                                    <ComboBox Width="110" Margin="12,0,0,0" VerticalAlignment="Center"
+                                    <ComboBox Width="110" Margin="0,0,12,8" VerticalAlignment="Center"
                                               materialDesign:HintAssist.Hint="重要度"
                                               ItemsSource="{Binding SeverityOptions}"
                                               SelectedItem="{Binding FilterSeverity}" />
-                                    <ComboBox Width="180" Margin="12,0,0,0" VerticalAlignment="Center"
+                                    <ComboBox Width="180" Margin="0,0,12,8" VerticalAlignment="Center"
                                               materialDesign:HintAssist.Hint="分類"
                                               ItemsSource="{Binding CategoryOptions}"
                                               SelectedItem="{Binding FilterCategory}" />
-                                    <Button Command="{Binding ClearFilterCommand}" Margin="12,0,0,0"
+                                    <Button Command="{Binding ClearFilterCommand}" Margin="0,0,16,8"
                                             Style="{StaticResource MaterialDesignOutlinedButton}">
                                         <TextBlock Text="クリア" />
                                     </Button>
-                                    <TextBlock Text="{Binding FilterSummary}" Margin="16,0,0,0" VerticalAlignment="Center" Opacity="0.7" />
-                                </StackPanel>
+                                    <TextBlock Text="{Binding FilterSummary}" Margin="0,0,0,8" VerticalAlignment="Center" Opacity="0.7" />
+                                </WrapPanel>
                             </StackPanel>
                         </materialDesign:Card>
 
@@ -259,33 +242,86 @@
                                       GridLinesVisibility="Horizontal"
                                       BorderThickness="0">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="重要度" Binding="{Binding SeverityDisplay}" Width="70" />
-                                    <DataGridTextColumn Header="分類" Binding="{Binding Category}" Width="150" />
-                                    <DataGridTextColumn Header="内容" Binding="{Binding Title}" Width="*" />
-                                    <DataGridTextColumn Header="対象" Binding="{Binding Target}" Width="300" />
+                                    <DataGridTemplateColumn Header="重要度" Width="100">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Width="18" Height="18" VerticalAlignment="Center">
+                                                        <materialDesign:PackIcon.Style>
+                                                            <Style TargetType="materialDesign:PackIcon">
+                                                                <Setter Property="Kind" Value="Information" />
+                                                                <Setter Property="Foreground" Value="#616161" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Severity}" Value="Review">
+                                                                        <Setter Property="Kind" Value="AlertCircle" />
+                                                                        <Setter Property="Foreground" Value="#C62828" />
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Severity}" Value="Caution">
+                                                                        <Setter Property="Kind" Value="Alert" />
+                                                                        <Setter Property="Foreground" Value="#E65100" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </materialDesign:PackIcon.Style>
+                                                    </materialDesign:PackIcon>
+                                                    <TextBlock Text="{Binding SeverityDisplay}" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Header="分類" Binding="{Binding Category}" Width="150"
+                                                        ElementStyle="{StaticResource CellEllipsis}" />
+                                    <DataGridTextColumn Header="内容" Binding="{Binding Title}" Width="*"
+                                                        ElementStyle="{StaticResource CellEllipsis}" />
+                                    <DataGridTextColumn Header="対象" Binding="{Binding Target}" Width="300"
+                                                        ElementStyle="{StaticResource CellEllipsis}" />
                                 </DataGrid.Columns>
                             </DataGrid>
                         </materialDesign:Card>
 
-                        <materialDesign:Card Grid.Row="2" Padding="12" Margin="0,12,0,0" Height="170">
-                            <Grid DataContext="{Binding SelectedLeftover}">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="*" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
-                                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding Detail}" TextWrapping="Wrap" />
-                                        <TextBlock Text="案内コマンド（自動実行はされません）" FontWeight="Bold" Margin="0,8,0,2" />
-                                        <TextBox Text="{Binding CommandDisplay, Mode=OneWay}" IsReadOnly="True"
-                                                 FontFamily="Consolas" TextWrapping="Wrap" />
-                                    </StackPanel>
-                                </ScrollViewer>
-                                <Button Grid.Row="1" HorizontalAlignment="Left" Margin="0,8,0,0"
-                                        Command="{Binding DataContext.CopyCommandTextCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                        Style="{StaticResource MaterialDesignOutlinedButton}">
-                                    <TextBlock Text="コマンドをコピー" />
-                                </Button>
+                        <materialDesign:Card Grid.Row="2" Padding="12" Margin="0,12,0,0" Height="150">
+                            <Grid>
+                                <TextBlock Text="一覧の行を選ぶと、詳細と案内コマンドがここに表示されます。"
+                                           VerticalAlignment="Center" HorizontalAlignment="Center" Opacity="0.7">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedLeftover}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <Grid DataContext="{Binding SelectedLeftover}">
+                                    <Grid.Style>
+                                        <Style TargetType="Grid">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Grid.Style>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Detail}" TextWrapping="Wrap" />
+                                            <TextBlock Text="案内コマンド（自動実行はされません）" FontWeight="Bold" Margin="0,8,0,2" />
+                                            <TextBox Text="{Binding CommandDisplay, Mode=OneWay}" IsReadOnly="True"
+                                                     FontFamily="Consolas" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </ScrollViewer>
+                                    <Button Grid.Row="1" HorizontalAlignment="Left" Margin="0,8,0,0"
+                                            Command="{Binding DataContext.CopyCommandTextCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            Style="{StaticResource MaterialDesignOutlinedButton}">
+                                        <TextBlock Text="コマンドをコピー" />
+                                    </Button>
+                                </Grid>
                             </Grid>
                         </materialDesign:Card>
                     </Grid>
@@ -316,7 +352,7 @@
                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                     <ProgressBar Style="{StaticResource MaterialDesignCircularProgressBar}"
                                  IsIndeterminate="True" Width="50" Height="50" />
-                    <TextBlock Text="処理中..." Foreground="White" Margin="0,16,0,0"
+                    <TextBlock Text="処理中…" Foreground="White" Margin="0,16,0,0"
                                FontSize="16" HorizontalAlignment="Center" />
                 </StackPanel>
             </Grid>

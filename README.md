@@ -59,14 +59,14 @@ Intel Rapid Storage Technologyが、ドライバーストアに無い `iaAHCIC.i
 - ストレージ系ドライバー（`iastorvd`、`iaAHCIC`、`stornvme` などのINF、ディスク／SCSI／IDE ATA／ボリューム系のクラス）は、
   削除すると起動できなくなるおそれがあるため、**検出しても削除コマンドを提案しません**（画面にもその旨を表示します）。
 - 旧版ドライバーの削除案内は、どのデバイスにも使われていない非ストレージ系のものに限り、`/force` を付けない `pnputil /delete-driver` です。
-- MSIが参照するINFの検出は、MSIのFileテーブルにある `.inf` を基にした推定です。誤検出を避けるため、ストレージ系のINFか、DIFxのドライバー登録テーブル（`MsiDriverPackages`）を持つMSIのINFだけを対象にします。
+- MSIが参照するINFの検出は、MSIのFileテーブルにある `.inf` を基にした推定です。誤検出を避けるため、対象は次の2つに限ります。ストレージ系のINFと、DIFxのドライバー登録テーブル（`MsiDriverPackages`）を持つMSIのINFです。
 - 空フォルダー・停止無効サービスなどは、利用者が意図して残している場合もあります。
 
 ## インストール
 
 インストールは不要です。
 
-1. [最新リリース](https://github.com/fara1991/FaraDeviceChecker/releases)から `FaraDeviceDriverChecker-vX.X.X-win-x64.zip` をダウンロード
+1. [最新リリース](https://github.com/fara1991/fara-windows-checker/releases)から `FaraDeviceDriverChecker-vX.X.X-win-x64.zip` をダウンロード
 2. ZIPファイルを解凍
 3. `FaraDeviceDriverChecker.exe` を実行
 
@@ -156,8 +156,8 @@ dotnet test FaraDeviceDriverChecker.Tests
 
 ```bash
 # リポジトリをクローン
-git clone https://github.com/fara1991/FaraDeviceChecker.git
-cd FaraDeviceChecker
+git clone https://github.com/fara1991/fara-windows-checker.git
+cd fara-windows-checker
 
 # 依存関係の復元
 dotnet restore
@@ -171,7 +171,7 @@ dotnet publish FaraDeviceDriverChecker/FaraDeviceDriverChecker.csproj -c Release
 
 ## サポート
 
-問題や質問がある場合は、[GitHubのIssues](https://github.com/fara1991/FaraDeviceChecker/issues)で報告してください。
+問題や質問がある場合は、[GitHubのIssues](https://github.com/fara1991/fara-windows-checker/issues)で報告してください。
 報告時には、Windowsのバージョンと発生している現象の詳細を添えていただけますと幸いです。
 
 ## ライセンス

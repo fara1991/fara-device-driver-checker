@@ -116,7 +116,7 @@ public class DeviceService
                 var script = @"
                 $UpdateSession = New-Object -ComObject Microsoft.Update.Session
                 $UpdateSearcher = $UpdateSession.CreateUpdateSearcher()
-                Write-Host 'ドライバー更新を検索中...'
+                Write-Host 'ドライバー更新を検索中…'
                 $SearchResult = $UpdateSearcher.Search('IsInstalled=0 and Type=''Driver''')
 
                 if ($SearchResult.Updates.Count -eq 0) {
@@ -132,12 +132,12 @@ public class DeviceService
                     $UpdatesToInstall.Add($Update) | Out-Null
                 }
 
-                Write-Host 'ダウンロード中...'
+                Write-Host 'ダウンロード中…'
                 $Downloader = $UpdateSession.CreateUpdateDownloader()
                 $Downloader.Updates = $UpdatesToInstall
                 $Downloader.Download() | Out-Null
 
-                Write-Host 'インストール中...'
+                Write-Host 'インストール中…'
                 $Installer = $UpdateSession.CreateUpdateInstaller()
                 $Installer.Updates = $UpdatesToInstall
                 $InstallResult = $Installer.Install()

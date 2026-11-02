@@ -86,15 +86,41 @@ public class LogicTests
     [InlineData("\\??\\C:\\Program Files\\Vendor\\foo.sys", "foo", "C:\\Program Files\\Vendor\\foo.sys")]
     [InlineData("D:\\drv\\foo.sys", "foo", "D:\\drv\\foo.sys")]
     [InlineData("\"D:\\drv dir\\foo.sys\"", "foo", "D:\\drv dir\\foo.sys")]
-    [InlineData("%SystemRoot%\\System32\\drivers\\foo.sys", "foo", "C:\\Windows\\System32\\drivers\\foo.sys")]
     public void ドライバーの_ImagePath_を絶対パスに解決できる(string? imagePath, string name, string expected)
+        => Assert.Equal(expected, PathResolver.ResolveDriverImagePath(imagePath, name, "C:\\Windows"));
+
+    [Fact]
+    public void ImagePath_の環境変数は展開される()
     {
-        // %SystemRoot% の展開結果が環境依存にならないよう、期待値側にも同じ展開を適用する
-        var actual = PathResolver.ResolveDriverImagePath(imagePath, name, "C:\\Windows");
-        var normalized = actual.Replace(Environment.GetEnvironmentVariable("SystemRoot") ?? "C:\\Windows", "C:\\Windows",
-            StringComparison.OrdinalIgnoreCase);
-        Assert.Equal(expected, normalized);
+        var systemRoot = Environment.ExpandEnvironmentVariables("%SystemRoot%");
+        var actual = PathResolver.ResolveDriverImagePath("%SystemRoot%\\System32\\drivers\\foo.sys", "foo", "C:\\Windows");
+        Assert.Equal(systemRoot + "\\System32\\drivers\\foo.sys", actual);
     }
+
+    [Theory]
+    [InlineData("HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Ozone 9 Elements", true)]
+    [InlineData("HKLM\\SOFTWARE\\Foo & Bar", true)]
+    [InlineData("x\" & calc & \"y", false)]
+    [InlineData("x$(calc)", false)]
+    [InlineData("x`ncalc", false)]
+    [InlineData("%PATH%", false)]
+    [InlineData("a\u201Cb", false)]
+    [InlineData("a\r\nb", false)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    public void 二重引用符の中に埋め込んでよい値だけを許可する(string? value, bool expected)
+        => Assert.Equal(expected, CommandGuard.IsSafeInDoubleQuotes(value));
+
+    [Theory]
+    [InlineData("C:\\Program Files\\Intel\\Intel(R) Rapid Storage Technology", true)]
+    [InlineData("HID\\VID_1532&PID_0306&MI_00&COL00\\2&1AF591FA&1&0000", true)]
+    [InlineData("C:\\a'; calc; '", false)]
+    [InlineData("C:\\a\u2019b", false)]
+    [InlineData("C:\\a\nb", false)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    public void 単一引用符の中に埋め込んでよい値だけを許可する(string? value, bool expected)
+        => Assert.Equal(expected, CommandGuard.IsSafeInSingleQuotes(value));
 
     /// <summary>実機で全チェックを実行し、例外なく完了することと結果を確認する（読み取り専用）。</summary>
     [Fact]

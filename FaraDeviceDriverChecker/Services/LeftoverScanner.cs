@@ -33,6 +33,7 @@ public class LeftoverScanner
     private const string UserDataProductsPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\UserData\S-1-5-18\Products";
 
     // サービスのType（レジストリ値）
+    private const int ServiceTypeNone = 0;
     private const int ServiceTypeKernelDriver = 1;
     private const int ServiceTypeFileSystemDriver = 2;
 
@@ -138,8 +139,29 @@ public class LeftoverScanner
     private static string? ReadString(RegistryKey key, string name)
         => key.GetValue(name) as string;
 
+    // ---- 案内コマンドの生成 ----
+    // 引用符の外へ抜け出せる値（キー名やフォルダー名に " や ' を含む場合など）は、コマンドを空にして案内しない。
+
     private static string DeleteWithBackupCommand(string regPath, string backupName)
-        => $"reg export \"{regPath}\" \"{backupName}.reg\"\r\nreg delete \"{regPath}\" /f";
+        => CommandGuard.IsSafeInDoubleQuotes(regPath) && CommandGuard.IsSafeInDoubleQuotes(backupName)
+            ? $"reg export \"{regPath}\" \"{backupName}.reg\"\r\nreg delete \"{regPath}\" /f"
+            : "";
+
+    private static string JoinCommands(params string[] commands)
+        => string.Join("\r\n", commands.Where(c => c != ""));
+
+    private static string ServiceCommand(string name)
+        => CommandGuard.IsSafeInDoubleQuotes(name)
+            ? $"sc.exe qc \"{name}\"\r\nsc.exe delete \"{name}\""
+            : "";
+
+    private static string RemoveFolderCommand(string path, string options)
+        => CommandGuard.IsSafeInSingleQuotes(path) ? $"Remove-Item -LiteralPath '{path}' {options}" : "";
+
+    private static string GetPnpDeviceCommand(string? instanceId)
+        => CommandGuard.IsSafeInSingleQuotes(instanceId)
+            ? $"Get-PnpDevice -InstanceId '{instanceId}' | Format-List *"
+            : "";
 
     // ---- レジストリ: Uninstall ----
 
@@ -264,8 +286,8 @@ public class LeftoverScanner
                 Add(CatRegistry, LeftoverSeverity.Review,
                     $"キャッシュ済みMSIが存在しません: {label}", userDataPath,
                     $"LocalPackageが見つかりません: {localPackage}。修復・アンインストールが失敗する原因になります。",
-                    DeleteWithBackupCommand(userDataPath, $"backup-userdata-{packed}") + "\r\n" +
-                    DeleteWithBackupCommand(productsPath, $"backup-products-{packed}"));
+                    JoinCommands(DeleteWithBackupCommand(userDataPath, $"backup-userdata-{packed}"),
+                        DeleteWithBackupCommand(productsPath, $"backup-products-{packed}")));
             }
             else if (!uninstallGuids.Contains(guid) && !_userDataDenied && !userDataKnown)
             {
@@ -358,7 +380,7 @@ public class LeftoverScanner
             Add(CatDriverRef, LeftoverSeverity.Review,
                 $"デバイスが存在しないINFを参照しています: {name}", o["DeviceID"]?.ToString() ?? "",
                 $"{inf}が {infDir}にありません。ドライバーの再インストールが必要な可能性があります。",
-                $"Get-PnpDevice -InstanceId '{o["DeviceID"]}' | Format-List *", StorageGuard.IsStorageName(inf));
+                GetPnpDeviceCommand(o["DeviceID"]?.ToString()), StorageGuard.IsStorageName(inf));
         }
     }
 
@@ -388,7 +410,7 @@ public class LeftoverScanner
             // Windows本体のサービスは対象外にする
             if (exe.StartsWith(windir, StringComparison.OrdinalIgnoreCase)) continue;
 
-            var command = $"sc.exe qc \"{name}\"\r\nsc.exe delete \"{name}\"";
+            var command = ServiceCommand(name);
             if (!File.Exists(exe))
             {
                 Add(CatService, LeftoverSeverity.Review,
@@ -444,7 +466,7 @@ public class LeftoverScanner
         using var key = services.OpenSubKey(name);
         if (key == null) return;
 
-        var type = key.GetValue("Type") as int? ?? 0;
+        var type = key.GetValue("Type") as int? ?? ServiceTypeNone;
         if (type is not (ServiceTypeKernelDriver or ServiceTypeFileSystemDriver)) return;
 
         // 無効のものは影響が無いので対象外
@@ -495,7 +517,7 @@ public class LeftoverScanner
                 $"登録の無いPackage Cache: {Path.GetFileName(dir)}", dir,
                 $"Uninstall・Installer\\Products・Dependenciesのいずれにも {guid}が見つかりません。" +
                 $"サイズ: {FormatSize(DirectorySize(dir))}",
-                $"Remove-Item -LiteralPath '{dir}' -Recurse -Force");
+                RemoveFolderCommand(dir, "-Recurse -Force"));
         }
     }
 
@@ -530,7 +552,7 @@ public class LeftoverScanner
                     $"登録の無い製品フォルダー: {relative}", folder,
                     $"「{keyword}」を含む製品がUninstall / Installer\\Productsに登録されていません。" +
                     "アンインストール後に残ったフォルダーの可能性があります。",
-                    $"Remove-Item -LiteralPath '{folder}' -Recurse -Force");
+                    RemoveFolderCommand(folder, "-Recurse -Force"));
             }
 
             // 中身がファイルを1つも持たない空のフォルダー（ベンダー直下）
@@ -540,7 +562,7 @@ public class LeftoverScanner
                 Add(CatFolder, LeftoverSeverity.Info,
                     $"ファイルの無い空のフォルダー: {Path.GetFileName(vendor)}", vendor,
                     "配下にファイルが1つもありません。",
-                    $"Remove-Item -LiteralPath '{vendor}' -Recurse");
+                    RemoveFolderCommand(vendor, "-Recurse"));
             }
         }
     }
@@ -669,7 +691,7 @@ public class LeftoverScanner
             Add(CatProblem, code != 0 ? LeftoverSeverity.Review : LeftoverSeverity.Caution,
                 $"{name}", id,
                 $"Status={status} / クラス={o["PNPClass"]} / エラーコード={code}（{ErrorCodeHelper.GetProblemDescription(code)}）",
-                $"Get-PnpDevice -InstanceId '{id}' | Format-List *");
+                GetPnpDeviceCommand(id));
         }
     }
 }
