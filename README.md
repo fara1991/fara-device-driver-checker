@@ -124,7 +124,7 @@ FaraDeviceDriverChecker/
 │   └── MainViewModel.cs     # メインビューモデル (MVVM)
 ├── Services/
 │   ├── DeviceService.cs     # デバイス情報取得・更新サービス
-│   ├── LeftoverScanner.cs   # 残骸チェック（読み取り専用）
+│   ├── LeftoverScanner.cs   # 残骸チェック（読み取り専用）。検出の分類ごとに LeftoverScanner.*.cs へ分割
 │   ├── PnpUtilParser.cs     # pnputil /enum-driversの解析
 │   └── ReportExporter.cs    # テキスト / JSONエクスポート
 ├── Utilities/
@@ -132,7 +132,10 @@ FaraDeviceDriverChecker/
 │   ├── ErrorCodeHelper.cs   # エラーコード変換
 │   ├── MsiGuid.cs           # MSI圧縮GUIDの相互変換
 │   ├── MsiDatabase.cs       # キャッシュMSIの読み取り
-│   └── StorageGuard.cs      # ストレージ系の保護判定
+│   ├── StorageGuard.cs      # ストレージ系の保護判定
+│   ├── CommandBuilder.cs    # 案内コマンドの組み立て
+│   ├── CommandGuard.cs      # 案内コマンドに埋め込む値の検証
+│   └── PathResolver.cs      # コマンドラインやImagePathからのパス解決
 ├── MainWindow.xaml          # メインウィンドウUI
 └── App.xaml                 # アプリケーション設定
 ```
