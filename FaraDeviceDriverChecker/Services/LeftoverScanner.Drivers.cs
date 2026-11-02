@@ -4,19 +4,18 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Management;
-using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
 using Models;
 using Utilities;
 using static FaraDeviceDriverChecker.Utilities.CommandBuilder;
 
-// 残骸チェック: ドライバー（INF の参照・ドライバーストア・旧版の重複・問題のあるデバイス）
+// 残骸チェック: ドライバー（INFの参照・ドライバーストア・旧版の重複・問題のあるデバイス）
 public partial class LeftoverScanner
 {
     // ---- デバイスが参照するINF ----
 
-    /// <summary>デバイスに割り当てられた署名済みドライバー（WMI の Win32_PnPSignedDriver）。</summary>
+    /// <summary>デバイスに割り当てられた署名済みドライバー（WMIのWin32_PnPSignedDriver）。</summary>
     private record SignedDriver(string DeviceName, string DeviceId, string InfName);
 
     private static List<SignedDriver> LoadSignedDrivers()
@@ -55,7 +54,7 @@ public partial class LeftoverScanner
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         var psi = new ProcessStartInfo
         {
-            // 同名の実行ファイルを置かれても読み込まないよう、System32 の絶対パスを指定する
+            // 同名の実行ファイルを置かれても読み込まないよう、System32の絶対パスを指定する
             FileName = Path.Combine(Environment.SystemDirectory, "pnputil.exe"),
             Arguments = "/enum-drivers",
             UseShellExecute = false,
@@ -69,7 +68,7 @@ public partial class LeftoverScanner
         return PnpUtilParser.Parse(output);
     }
 
-    /// <summary>ドライバーストアにあるINFの元の名前（小文字）の集合。pnputilとFileRepositoryの和集合。</summary>
+    /// <summary>ドライバーストアにあるINFの元の名前の集合（大文字小文字は区別しない）。pnputilとFileRepositoryの和集合。</summary>
     private static HashSet<string>? BuildStoreInfNames(List<DriverPackage>? packages)
     {
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -114,7 +113,7 @@ public partial class LeftoverScanner
                 var isStorage = StorageGuard.IsStorageName(old.OriginalName) ||
                                 StorageGuard.IsStorageClass(old.ClassGuid) ||
                                 StorageGuard.IsStorageName(old.ClassName);
-                var detail = $"最新: {newest.PublishedName} (v{newest.Version}) / この旧版: {old.PublishedName} (v{old.Version}, {old.Date:yyyy/MM/dd}) / " +
+                var detail = $"最新: {DescribePackage(newest, includeDate: false)} / この旧版: {DescribePackage(old, includeDate: true)} / " +
                              $"プロバイダー: {old.Provider} / クラス: {old.ClassName}。" +
                              (used ? "デバイスが使用中のため削除しないでください。" : "どのデバイスにも使われていません。") +
                              (isStorage ? "ストレージ系のため削除対象として提案しません。" : "");
@@ -123,6 +122,16 @@ public partial class LeftoverScanner
                     used || isStorage ? "" : DeleteDriverCommand(old.PublishedName), isStorage);
             }
         }
+    }
+
+    /// <summary>「oem12.inf (v1.0.0.0, 2020/01/01)」の形の説明。バージョンや日付が分からないときは「不明」と表示する。</summary>
+    private static string DescribePackage(DriverPackage package, bool includeDate)
+    {
+        var version = package.Version is { } v ? $"v{v}" : "バージョン不明";
+        var date = package.Date is { } d ? d.ToString("yyyy/MM/dd") : "日付不明";
+        return includeDate
+            ? $"{package.PublishedName} ({version}, {date})"
+            : $"{package.PublishedName} ({version})";
     }
 
     // ---- 問題のあるデバイス ----
@@ -140,7 +149,7 @@ public partial class LeftoverScanner
             var name = o["Name"]?.ToString() ?? "（名前なし）";
             var id = o["DeviceID"]?.ToString() ?? "";
             Add(CatProblem, code != 0 ? LeftoverSeverity.Review : LeftoverSeverity.Caution,
-                $"{name}", id,
+                name, id,
                 $"Status: {status} / クラス: {o["PNPClass"]} / エラーコード: {code}（{ErrorCodeHelper.GetProblemDescription(code)}）",
                 GetPnpDeviceCommand(id));
         }

@@ -26,7 +26,7 @@ public static class CommandGuard
     private static bool IsPlain(string? value)
         => !string.IsNullOrEmpty(value) && !value.Any(IsHiddenOrControl);
 
-    /// <summary>制御文字と、表示と実行内容をずらせる不可視の文字（Bidi 制御、ゼロ幅、行・段落の区切り）。</summary>
+    /// <summary>制御文字と、表示と実行内容をずらせる不可視の文字（Bidi制御、ゼロ幅、行・段落の区切り）。</summary>
     private static bool IsHiddenOrControl(char c)
         => char.GetUnicodeCategory(c) is UnicodeCategory.Control or UnicodeCategory.Format
             or UnicodeCategory.LineSeparator or UnicodeCategory.ParagraphSeparator;

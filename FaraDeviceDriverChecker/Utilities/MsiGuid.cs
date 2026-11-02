@@ -3,7 +3,7 @@ namespace FaraDeviceDriverChecker.Utilities;
 using System.Text;
 using System.Text.RegularExpressions;
 
-/// <summary>Windows Installer の「圧縮 GUID」（Installer\Products のキー名）と通常 GUID の相互変換。</summary>
+/// <summary>Windows Installerの「圧縮GUID」（Installer\Productsのキー名）と通常GUIDの相互変換。</summary>
 public static class MsiGuid
 {
     private static readonly Regex GuidPattern =
@@ -11,7 +11,7 @@ public static class MsiGuid
 
     public static bool IsGuid(string text) => GuidPattern.IsMatch(text);
 
-    /// <summary>{409CB30E-...} 形式を 32 桁の圧縮 GUID に変換する。変換できなければ null。</summary>
+    /// <summary>{409CB30E-...} 形式を32桁の圧縮GUIDに変換する。変換できなければnull。</summary>
     public static string? Pack(string guid)
     {
         if (!IsGuid(guid)) return null;
@@ -25,7 +25,7 @@ public static class MsiGuid
         return sb.ToString();
     }
 
-    /// <summary>32 桁の圧縮 GUID を {XXXXXXXX-...} 形式に戻す。変換できなければ null。</summary>
+    /// <summary>32桁の圧縮GUIDを {XXXXXXXX-...} 形式に戻す。変換できなければnull。</summary>
     public static string? Unpack(string packed)
     {
         if (packed.Length != 32 || !packed.All(Uri.IsHexDigit)) return null;

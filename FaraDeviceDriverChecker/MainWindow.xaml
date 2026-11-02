@@ -23,7 +23,7 @@
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
 
-        <!-- 長い文字列は省略記号で切り、全文を ToolTip で見られるようにする -->
+        <!-- 長い文字列は省略記号で切り、全文をToolTipで見られるようにする -->
         <Style x:Key="CellEllipsis" TargetType="TextBlock">
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
             <Setter Property="ToolTip" Value="{Binding RelativeSource={RelativeSource Self}, Path=Text}" />

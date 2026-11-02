@@ -3,7 +3,7 @@ namespace FaraDeviceDriverChecker.Utilities;
 using System.Runtime.InteropServices;
 using System.Text;
 
-/// <summary>キャッシュ済み MSI（C:\Windows\Installer\*.msi）を読み取り専用で開き、テーブルを問い合わせる。</summary>
+/// <summary>キャッシュ済みMSI（C:\Windows\Installer\*.msi）を読み取り専用で開き、テーブルを問い合わせる。</summary>
 public sealed class MsiDatabase : IDisposable
 {
     private const int MsiDbOpenReadOnly = 0;
@@ -13,12 +13,12 @@ public sealed class MsiDatabase : IDisposable
 
     private MsiDatabase(IntPtr handle) => _handle = handle;
 
-    /// <summary>開けなければ null を返す（破損・アクセス拒否など）。</summary>
+    /// <summary>開けなければnullを返す（破損・アクセス拒否など）。</summary>
     public static MsiDatabase? TryOpen(string path)
     {
         try
         {
-            // persist に 0 (MSIDBOPEN_READONLY) を渡す。文字列ポインター版ではなく整数版を使う
+            // persistに0 (MSIDBOPEN_READONLY) を渡す。文字列ポインター版ではなく整数版を使う
             return MsiOpenDatabaseW(path, new IntPtr(MsiDbOpenReadOnly), out var h) == 0 ? new MsiDatabase(h) : null;
         }
         catch
@@ -27,7 +27,7 @@ public sealed class MsiDatabase : IDisposable
         }
     }
 
-    /// <summary>1 列目の文字列を返すクエリを実行する。テーブルが無い場合は空のリストを返す。</summary>
+    /// <summary>1列目の文字列を返すクエリを実行する。テーブルが無い場合は空のリストを返す。</summary>
     public List<string> QueryFirstColumn(string sql)
     {
         var rows = new List<string>();

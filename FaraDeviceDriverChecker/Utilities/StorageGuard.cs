@@ -8,7 +8,7 @@ using System.Text.RegularExpressions;
 /// </summary>
 public static class StorageGuard
 {
-    // ディスクドライブ / SCSI アダプター / IDE ATA コントローラー / ボリューム / ストレージ ボリューム
+    // ディスクドライブ / SCSIアダプター / IDE ATAコントローラー / ボリューム / ストレージ ボリューム
     private static readonly HashSet<string> StorageClassGuids = new(StringComparer.OrdinalIgnoreCase)
     {
         "{4d36e967-e325-11ce-bfc1-08002be10318}",
@@ -23,7 +23,7 @@ public static class StorageGuard
         @"intelide|pciide|atapi|disk|partmgr|volmgr|volsnap|ntfs|refs|fvevol|mpio|megasas|megasr|percsas|hpsa)",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    /// <summary>INF 名・サービス名・ドライバー名がストレージ系なら true。</summary>
+    /// <summary>INF名・サービス名・ドライバー名がストレージ系ならtrue。</summary>
     public static bool IsStorageName(string? name)
         => !string.IsNullOrWhiteSpace(name) && StorageNamePattern.IsMatch(name.Trim());
 

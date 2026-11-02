@@ -1,16 +1,13 @@
 namespace FaraDeviceDriverChecker.Services;
 
-using System.Globalization;
 using System.IO;
 using System.Security;
-using System.Text;
-using System.Text.RegularExpressions;
 using Microsoft.Win32;
 using Models;
 using Utilities;
 using static FaraDeviceDriverChecker.Utilities.CommandBuilder;
 
-// 残骸チェック: レジストリ（Uninstall・InstallerProducts・UserData）
+// 残骸チェック: レジストリ（Uninstall・Installer\Products・UserData）
 public partial class LeftoverScanner
 {
     // ---- レジストリ: Uninstall ----
@@ -22,7 +19,7 @@ public partial class LeftoverScanner
         {
             (RegistryHive.LocalMachine, RegistryView.Registry64, "HKLM（通常）", @"HKLM\" + UninstallPath),
             (RegistryHive.LocalMachine, RegistryView.Registry32, "HKLM（WOW6432Node）", @"HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"),
-            (RegistryHive.CurrentUser, RegistryView.Registry64, "HKCU", @"HKCU\" + UninstallPath)
+            (RegistryHive.CurrentUser, RegistryView.Registry64, ViewHkcu, @"HKCU\" + UninstallPath)
         };
 
         foreach (var (hive, view, label, display) in sources)
@@ -71,7 +68,7 @@ public partial class LeftoverScanner
             }
 
             // MSI製品なのにInstaller\Productsへの登録が無い
-            var isMsiKey = MsiGuid.IsGuid(e.KeyName) && e.View != "HKCU" &&
+            var isMsiKey = MsiGuid.IsGuid(e.KeyName) && e.View != ViewHkcu &&
                            (e.IsMsi || e.UninstallString.Contains("msiexec", StringComparison.OrdinalIgnoreCase));
             if (isMsiKey && MsiGuid.Pack(e.KeyName) is { } packed && !ProductRegistered(packed))
             {
@@ -95,7 +92,7 @@ public partial class LeftoverScanner
     private void CheckInstallerRegistrations(List<UninstallEntry> entries, HashSet<string>? storeInfNames)
     {
         using var hklm = OpenHklm64();
-        var uninstallGuids = entries.Where(e => e.View != "HKCU")
+        var uninstallGuids = entries.Where(e => e.View != ViewHkcu)
             .Select(e => e.KeyName.ToUpperInvariant()).ToHashSet();
 
         using var products = hklm.OpenSubKey(InstallerProductsPath);
@@ -142,7 +139,7 @@ public partial class LeftoverScanner
 
     /// <summary>
     /// UserDataのInstallPropertiesから、キャッシュ済みMSIのパス（LocalPackage）を読む。
-    /// 登録が無いときは Known が false。アクセスが拒否されたときも false を返し、拒否されたことを記録する。
+    /// 登録が無いときはKnownがfalse。アクセスが拒否されたときもfalseを返し、拒否されたことを記録する。
     /// </summary>
     private (bool Known, string? LocalPackage) ReadInstallProperties(RegistryKey hklm, string packed)
     {

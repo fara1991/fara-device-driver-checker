@@ -24,6 +24,19 @@ public static class PathResolver
     }
 
     /// <summary>
+    /// pathがdirectoryの配下（またはdirectoryそのもの）かを、フォルダーの区切りを考慮して判定する。
+    /// 単なる前方一致だと、「C:\Windows」が「C:\WindowsApps」や「C:\Windows.old」にも一致してしまう。
+    /// </summary>
+    public static bool IsUnderDirectory(string path, string directory)
+    {
+        if (string.IsNullOrEmpty(path) || string.IsNullOrEmpty(directory)) return false;
+
+        var root = directory.TrimEnd('\\', '/');
+        if (!path.StartsWith(root, StringComparison.OrdinalIgnoreCase)) return false;
+        return path.Length == root.Length || path[root.Length] is '\\' or '/';
+    }
+
+    /// <summary>
     /// カーネルドライバーのサービス登録（ImagePath）を絶対パスに解決する。
     /// ImagePathが無い場合は既定のSystem32\drivers\&lt;サービス名&gt;.sysとみなす。
     /// </summary>

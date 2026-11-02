@@ -1,11 +1,8 @@
 namespace FaraDeviceDriverChecker.Services;
 
-using System.Globalization;
 using System.IO;
 using System.Management;
 using System.Security;
-using System.Text;
-using System.Text.RegularExpressions;
 using Microsoft.Win32;
 using Models;
 using Utilities;
@@ -38,7 +35,7 @@ public partial class LeftoverScanner
             if (name == "" || exe == null || !Path.IsPathRooted(exe)) continue;
 
             // Windows本体のサービスは対象外にする
-            if (exe.StartsWith(windir, StringComparison.OrdinalIgnoreCase)) continue;
+            if (PathResolver.IsUnderDirectory(exe, windir)) continue;
 
             var command = ServiceCommand(name);
             if (!File.Exists(exe))
@@ -48,7 +45,7 @@ public partial class LeftoverScanner
                     $"状態: {state} / 開始: {startMode} / 実体なし: {exe}", command);
             }
             else if (state == "Stopped" && startMode == "Disabled" &&
-                     programRoots.Any(r => exe.StartsWith(r, StringComparison.OrdinalIgnoreCase)))
+                     programRoots.Any(r => PathResolver.IsUnderDirectory(exe, r)))
             {
                 var known = name.StartsWith("IAStor", StringComparison.OrdinalIgnoreCase)
                     ? "Intel RSTのサービスで、アンインストール後に残る例があります。" : "";

@@ -107,7 +107,7 @@ public class DeviceService
         return null;
     }
 
-    /// <summary>Windows Update にドライバーの更新を検索させ、ダウンロードとインストールまで行う PowerShell のスクリプト。</summary>
+    /// <summary>Windows Updateにドライバーの更新を検索させ、ダウンロードとインストールまで行うPowerShellのスクリプト。</summary>
     private const string DriverUpdateScript = @"
                 $UpdateSession = New-Object -ComObject Microsoft.Update.Session
                 $UpdateSearcher = $UpdateSession.CreateUpdateSearcher()

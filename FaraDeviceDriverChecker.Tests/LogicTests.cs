@@ -90,6 +90,19 @@ public class LogicTests
     public void ドライバーの_ImagePath_を絶対パスに解決できる(string? imagePath, string name, string expected)
         => Assert.Equal(expected, PathResolver.ResolveDriverImagePath(imagePath, name, "C:\\Windows"));
 
+    [Theory]
+    [InlineData("C:\\Windows\\System32\\svchost.exe", "C:\\Windows", true)]
+    [InlineData("c:\\windows\\system32\\svchost.exe", "C:\\Windows", true)]
+    [InlineData("C:\\Windows", "C:\\Windows", true)]
+    [InlineData("C:\\Windows\\foo.exe", "C:\\Windows\\", true)]
+    [InlineData("C:\\WindowsApps\\foo.exe", "C:\\Windows", false)]
+    [InlineData("C:\\Windows.old\\foo.exe", "C:\\Windows", false)]
+    [InlineData("C:\\Program Files (x86)\\Foo\\a.exe", "C:\\Program Files", false)]
+    [InlineData("", "C:\\Windows", false)]
+    [InlineData("C:\\Windows\\a.exe", "", false)]
+    public void フォルダーの配下かどうかを_区切りを考慮して判定できる(string path, string directory, bool expected)
+        => Assert.Equal(expected, PathResolver.IsUnderDirectory(path, directory));
+
     [Fact]
     public void ImagePath_の環境変数は展開される()
     {

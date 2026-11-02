@@ -1,10 +1,8 @@
 namespace FaraDeviceDriverChecker.Services;
 
-using System.Globalization;
 using System.IO;
 using System.Security;
 using System.Security.Principal;
-using System.Text.RegularExpressions;
 using Microsoft.Win32;
 using Models;
 
@@ -26,6 +24,9 @@ public partial class LeftoverScanner
     private const string InstallerProductsPath = @"SOFTWARE\Classes\Installer\Products";
     private const string InstallerDependenciesPath = @"SOFTWARE\Classes\Installer\Dependencies";
     private const string ServicesPath = @"SYSTEM\CurrentControlSet\Services";
+
+    /// <summary>Uninstall情報の読み取り元のうち、現在のユーザー分の表示名（MSIの登録確認の対象外）。</summary>
+    private const string ViewHkcu = "HKCU";
     private const string UserDataProductsPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\UserData\S-1-5-18\Products";
 
     /// <summary>読み取るレジストリの値名。</summary>

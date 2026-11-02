@@ -126,7 +126,7 @@ FaraDeviceDriverChecker/
 │   └── MainViewModel.cs     # メインビューモデル (MVVM)
 ├── Services/
 │   ├── DeviceService.cs     # デバイス情報取得・更新サービス
-│   ├── LeftoverScanner.cs   # 残骸チェック（読み取り専用）。検出の分類ごとに LeftoverScanner.*.cs へ分割
+│   ├── LeftoverScanner.cs   # 残骸チェック（読み取り専用）。検出の分類ごとにLeftoverScanner.*.csへ分割
 │   ├── PnpUtilParser.cs     # pnputil /enum-driversの解析
 │   └── ReportExporter.cs    # テキスト / JSONエクスポート
 ├── Utilities/

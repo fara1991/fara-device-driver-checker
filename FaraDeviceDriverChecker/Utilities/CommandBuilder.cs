@@ -10,7 +10,7 @@ public static class CommandBuilder
 {
     private static readonly Regex PublishedNamePattern = new(@"^oem\d+\.inf\z", RegexOptions.IgnoreCase);
 
-    /// <summary>レジストリキーを reg export でバックアップしてから削除するコマンド。</summary>
+    /// <summary>レジストリキーをreg exportでバックアップしてから削除するコマンド。</summary>
     public static string DeleteWithBackupCommand(string regPath, string backupName)
         => CommandGuard.IsSafeInDoubleQuotes(regPath) && CommandGuard.IsSafeInDoubleQuotes(backupName)
             ? $"reg export \"{regPath}\" \"{backupName}.reg\"\r\nreg delete \"{regPath}\" /f"
@@ -28,7 +28,7 @@ public static class CommandBuilder
     public static string RemoveFolderCommand(string path, string options)
         => CommandGuard.IsSafeInSingleQuotes(path) ? $"Remove-Item -LiteralPath '{path}' {options}" : "";
 
-    /// <summary>公開名（oemNN.inf）の形のときだけ、pnputil /delete-driver のコマンドを返す。</summary>
+    /// <summary>公開名（oemNN.inf）の形のときだけ、pnputil /delete-driverのコマンドを返す。</summary>
     public static string DeleteDriverCommand(string publishedName)
         => PublishedNamePattern.IsMatch(publishedName)
             ? $"pnputil /delete-driver {publishedName}"

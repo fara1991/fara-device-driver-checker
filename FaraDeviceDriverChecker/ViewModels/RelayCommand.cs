@@ -2,7 +2,7 @@ namespace FaraDeviceDriverChecker.ViewModels;
 
 using System.Windows.Input;
 
-/// <summary>同期・非同期の処理を ICommand として公開する。CanExecute は CommandManager の再評価に従う。</summary>
+/// <summary>同期・非同期の処理をICommandとして公開する。CanExecuteはCommandManagerの再評価に従う。</summary>
 public class RelayCommand : ICommand
 {
     private readonly Action? _execute;

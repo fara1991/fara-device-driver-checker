@@ -1,10 +1,6 @@
 namespace FaraDeviceDriverChecker.Services;
 
-using System.Globalization;
 using System.IO;
-using System.Security;
-using System.Security.Principal;
-using System.Text;
 using System.Text.RegularExpressions;
 using Models;
 using Utilities;
@@ -23,7 +19,7 @@ public partial class LeftoverScanner
         using var hklm = OpenHklm64();
         var registered = entries.Select(e => e.KeyName.ToUpperInvariant()).ToHashSet();
 
-        foreach (var dir in Directory.GetDirectories(root))
+        foreach (var dir in SafeDirectories(root))
         {
             var m = Regex.Match(Path.GetFileName(dir), @"^(\{[0-9A-Fa-f-]{36}\})");
             if (!m.Success) continue;
@@ -40,7 +36,7 @@ public partial class LeftoverScanner
 
             Add(CatFolder, LeftoverSeverity.Caution,
                 $"登録の無いPackage Cache: {Path.GetFileName(dir)}", dir,
-                $"Uninstall・Installer\\Products・Dependenciesのいずれにも {guid}が見つかりません。" +
+                $"Uninstall・Installer\\Products・Dependenciesのいずれにも{guid}が見つかりません。" +
                 $"サイズ: {FormatSize(DirectorySize(dir))}",
                 RemoveFolderCommand(dir, "-Recurse -Force"));
         }
