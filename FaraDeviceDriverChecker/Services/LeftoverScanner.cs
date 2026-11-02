@@ -32,6 +32,16 @@ public class LeftoverScanner
     private const string ServicesPath = @"SYSTEM\CurrentControlSet\Services";
     private const string UserDataProductsPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\UserData\S-1-5-18\Products";
 
+    // サービスの Type（レジストリ値）
+    private const int ServiceTypeKernelDriver = 1;
+    private const int ServiceTypeFileSystemDriver = 2;
+
+    // サービスの Start（レジストリ値）
+    private const int StartBoot = 0;
+    private const int StartSystem = 1;
+    private const int StartAuto = 2;
+    private const int StartDisabled = 4;
+
     private const string CatDriverRef = "存在しない INF の参照";
     private const string CatService = "サービスの残り";
     private const string CatFolder = "フォルダーの残り";
@@ -412,24 +422,24 @@ public class LeftoverScanner
             using var key = services.OpenSubKey(name);
             if (key == null) continue;
 
-            // Type 1 = カーネルドライバー、2 = ファイルシステムドライバー
             var type = key.GetValue("Type") as int? ?? 0;
-            if (type is not (1 or 2)) continue;
+            if (type is not (ServiceTypeKernelDriver or ServiceTypeFileSystemDriver)) continue;
 
-            // 0 = Boot, 1 = System, 2 = Auto, 3 = Manual, 4 = Disabled。無効のものは影響が無いので対象外
-            var start = key.GetValue("Start") as int? ?? 4;
-            if (start > 3) continue;
+            // 無効のものは影響が無いので対象外
+            var start = key.GetValue("Start") as int? ?? StartDisabled;
+            if (start >= StartDisabled) continue;
 
             var image = PathResolver.ResolveDriverImagePath(ReadString(key, "ImagePath"), name, windir);
             if (File.Exists(image)) continue;
 
             var isStorage = StorageGuard.IsStorageName(name) || StorageGuard.IsStorageName(Path.GetFileName(image));
             var regPath = $@"HKLM\{ServicesPath}\{name}";
-            var startText = start switch { 0 => "Boot", 1 => "System", 2 => "Auto", _ => "Manual" };
-            Add(CatService, start <= 2 ? LeftoverSeverity.Review : LeftoverSeverity.Caution,
+            var startText = start switch { StartBoot => "Boot", StartSystem => "System", StartAuto => "Auto", _ => "Manual" };
+            var loadedAtBoot = start <= StartAuto;
+            Add(CatService, loadedAtBoot ? LeftoverSeverity.Review : LeftoverSeverity.Caution,
                 $"実体の無いドライバーのサービス登録: {name}", regPath,
                 $"開始={startText} / ドライバーファイルが見つかりません: {image}。" +
-                (start <= 2 ? "起動時に読み込まれる設定のため、起動エラーの原因になり得ます。" : "") +
+                (loadedAtBoot ? "起動時に読み込まれる設定のため、起動エラーの原因になり得ます。" : "") +
                 (isStorage ? "ストレージ系のため、手動で削除しないでください。" : ""),
                 isStorage ? "" : DeleteWithBackupCommand(regPath, $"backup-service-{name}"), isStorage);
         }
