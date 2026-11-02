@@ -45,7 +45,7 @@ public partial class LeftoverScanner
             {
                 Add(CatService, LeftoverSeverity.Review,
                     $"実行ファイルの無いサービス: {display}", name,
-                    $"状態={state} / 開始={startMode} / 実体なし: {exe}", command);
+                    $"状態: {state} / 開始: {startMode} / 実体なし: {exe}", command);
             }
             else if (state == "Stopped" && startMode == "Disabled" &&
                      programRoots.Any(r => exe.StartsWith(r, StringComparison.OrdinalIgnoreCase)))
@@ -112,7 +112,7 @@ public partial class LeftoverScanner
         var loadedAtBoot = start <= StartAuto;
         Add(CatService, loadedAtBoot ? LeftoverSeverity.Review : LeftoverSeverity.Caution,
             $"実体の無いドライバーのサービス登録: {name}", regPath,
-            $"開始={startText} / ドライバーファイルが見つかりません: {image}。" +
+            $"開始: {startText} / ドライバーファイルが見つかりません: {image}。" +
             (loadedAtBoot ? "起動時に読み込まれる設定のため、起動エラーの原因になり得ます。" : "") +
             (isStorage ? "ストレージ系のため、手動で削除しないでください。" : ""),
             isStorage ? "" : DeleteWithBackupCommand(regPath, $"backup-service-{name}"), isStorage);

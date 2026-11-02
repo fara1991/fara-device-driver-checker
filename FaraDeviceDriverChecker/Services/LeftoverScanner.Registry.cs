@@ -20,8 +20,8 @@ public partial class LeftoverScanner
         var list = new List<UninstallEntry>();
         var sources = new[]
         {
-            (RegistryHive.LocalMachine, RegistryView.Registry64, "HKLM (通常)", @"HKLM\" + UninstallPath),
-            (RegistryHive.LocalMachine, RegistryView.Registry32, "HKLM (WOW6432Node)", @"HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"),
+            (RegistryHive.LocalMachine, RegistryView.Registry64, "HKLM（通常）", @"HKLM\" + UninstallPath),
+            (RegistryHive.LocalMachine, RegistryView.Registry32, "HKLM（WOW6432Node）", @"HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"),
             (RegistryHive.CurrentUser, RegistryView.Registry64, "HKCU", @"HKCU\" + UninstallPath)
         };
 
@@ -113,21 +113,7 @@ public partial class LeftoverScanner
             var label = productName != "" ? productName : guid;
             var productsPath = $@"HKLM\{InstallerProductsPath}\{packed}";
 
-            string? localPackage = null;
-            var userDataKnown = false;
-            try
-            {
-                using var props = hklm.OpenSubKey($@"{UserDataProductsPath}\{packed}\InstallProperties");
-                if (props != null)
-                {
-                    userDataKnown = true;
-                    localPackage = ReadString(props, RegValue.LocalPackage);
-                }
-            }
-            catch (Exception ex) when (ex is UnauthorizedAccessException or SecurityException)
-            {
-                _userDataDenied = true;
-            }
+            var (userDataKnown, localPackage) = ReadInstallProperties(hklm, packed);
 
             var userDataPath = $@"HKLM\{UserDataProductsPath}\{packed}";
 
@@ -151,6 +137,24 @@ public partial class LeftoverScanner
             {
                 CheckMsiInfReferences(label, guid, localPackage, storeInfNames);
             }
+        }
+    }
+
+    /// <summary>
+    /// UserDataのInstallPropertiesから、キャッシュ済みMSIのパス（LocalPackage）を読む。
+    /// 登録が無いときは Known が false。アクセスが拒否されたときも false を返し、拒否されたことを記録する。
+    /// </summary>
+    private (bool Known, string? LocalPackage) ReadInstallProperties(RegistryKey hklm, string packed)
+    {
+        try
+        {
+            using var props = hklm.OpenSubKey($@"{UserDataProductsPath}\{packed}\InstallProperties");
+            return props == null ? (false, null) : (true, ReadString(props, RegValue.LocalPackage));
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or SecurityException)
+        {
+            _userDataDenied = true;
+            return (false, null);
         }
     }
 
@@ -205,7 +209,7 @@ public partial class LeftoverScanner
             if (!isStorage && !hasDriverTable) continue;
             Add(CatDriverRef, isStorage ? LeftoverSeverity.Review : LeftoverSeverity.Caution,
                 $"{label}が参照するINFがドライバーストアにありません: {inf}", productCode,
-                "アンインストール時にドライバー削除（DiUninstallDriver）が0x490 (ERROR_NOT_FOUND) で失敗し、" +
+                "アンインストール時にドライバー削除（DiUninstallDriver）が0x490（ERROR_NOT_FOUND）で失敗し、" +
                 "MSIが1603で終了する原因になります。" +
                 (isStorage ? "ストレージ系のINFのため、手動で削除・登録解除しないでください。" : "") +
                 $"（参照元MSI: {localPackage}。Fileテーブルの.infを基にした推定で、未選択の機能のINFも含み得ます）",

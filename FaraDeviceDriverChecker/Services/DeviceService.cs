@@ -107,13 +107,8 @@ public class DeviceService
         return null;
     }
 
-    public async Task<(bool success, string message)> RunWindowsUpdateAsync()
-    {
-        return await Task.Run(() =>
-        {
-            try
-            {
-                var script = @"
+    /// <summary>Windows Update にドライバーの更新を検索させ、ダウンロードとインストールまで行う PowerShell のスクリプト。</summary>
+    private const string DriverUpdateScript = @"
                 $UpdateSession = New-Object -ComObject Microsoft.Update.Session
                 $UpdateSearcher = $UpdateSession.CreateUpdateSearcher()
                 Write-Host 'ドライバー更新を検索中…'
@@ -124,7 +119,7 @@ public class DeviceService
                     exit 0
                 }
 
-                Write-Host ""$($SearchResult.Updates.Count) 件のドライバー更新が見つかりました。""
+                Write-Host ""$($SearchResult.Updates.Count)件のドライバー更新が見つかりました。""
 
                 $UpdatesToInstall = New-Object -ComObject Microsoft.Update.UpdateColl
                 foreach ($Update in $SearchResult.Updates) {
@@ -148,12 +143,18 @@ public class DeviceService
 
                 Write-Host '完了しました。'
                 exit 0
-            ";
+";
 
+    public async Task<(bool success, string message)> RunWindowsUpdateAsync()
+    {
+        return await Task.Run(() =>
+        {
+            try
+            {
                 var processInfo = new ProcessStartInfo
                 {
                     FileName = "powershell",
-                    Arguments = $"-ExecutionPolicy Bypass -Command \"{script.Replace("\"", "\\\"")}\"",
+                    Arguments = $"-ExecutionPolicy Bypass -Command \"{DriverUpdateScript.Replace("\"", "\\\"")}\"",
                     UseShellExecute = true,
                     Verb = "runas"
                 };

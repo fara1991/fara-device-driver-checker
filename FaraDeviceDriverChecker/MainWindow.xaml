@@ -190,7 +190,7 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" MinHeight="100" />
                             <RowDefinition Height="Auto" />
-                            <RowDefinition Height="130" MinHeight="90" />
+                            <RowDefinition Height="150" MinHeight="90" />
                         </Grid.RowDefinitions>
 
                         <materialDesign:Card Grid.Row="0" Padding="12" Margin="0,0,0,12">

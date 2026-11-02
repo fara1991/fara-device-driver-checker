@@ -23,6 +23,6 @@ public static class ErrorCodeHelper
     {
         return ProblemCodes.TryGetValue(problemCode, out var description)
             ? description
-            : $"不明なエラー ({problemCode})";
+            : $"不明なエラー（{problemCode}）";
     }
 }

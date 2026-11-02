@@ -40,7 +40,7 @@ public partial class LeftoverScanner
             if (!Regex.IsMatch(d.InfName, @"^oem\d+\.inf$", RegexOptions.IgnoreCase)) continue;
             if (File.Exists(Path.Combine(infDir, d.InfName))) continue;
 
-            var name = d.DeviceName != "" ? d.DeviceName : "(名前なし)";
+            var name = d.DeviceName != "" ? d.DeviceName : "（名前なし）";
             Add(CatDriverRef, LeftoverSeverity.Review,
                 $"デバイスが存在しないINFを参照しています: {name}", d.DeviceId,
                 $"{d.InfName}が{infDir}にありません。ドライバーの再インストールが必要な可能性があります。",
@@ -137,11 +137,11 @@ public partial class LeftoverScanner
         {
             var code = o["ConfigManagerErrorCode"] is uint c ? c : 0;
             var status = o["Status"]?.ToString() ?? "不明";
-            var name = o["Name"]?.ToString() ?? "(名前なし)";
+            var name = o["Name"]?.ToString() ?? "（名前なし）";
             var id = o["DeviceID"]?.ToString() ?? "";
             Add(CatProblem, code != 0 ? LeftoverSeverity.Review : LeftoverSeverity.Caution,
                 $"{name}", id,
-                $"Status={status} / クラス={o["PNPClass"]} / エラーコード={code}（{ErrorCodeHelper.GetProblemDescription(code)}）",
+                $"Status: {status} / クラス: {o["PNPClass"]} / エラーコード: {code}（{ErrorCodeHelper.GetProblemDescription(code)}）",
                 GetPnpDeviceCommand(id));
         }
     }
