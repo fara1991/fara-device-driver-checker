@@ -1,32 +1,55 @@
 namespace FaraDeviceDriverChecker.Services;
 
+using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Management;
+using System.Security;
+using Microsoft.Win32;
 using Models;
 using Utilities;
 
+/// <summary>デバイスのスキャン結果。FailedCount は、デバイスの一覧を取得できなかったクラスの数。</summary>
+public record DeviceScanResult(List<DeviceInfo> Devices, int FailedCount);
+
 public class DeviceService
 {
-    public List<DeviceInfo> GetDevices(string[] deviceClasses)
+    private const string Unknown = "不明";
+    private const int ServiceTypeKernelDriver = 1;
+    private const int ServiceTypeFileSystemDriver = 2;
+
+    /// <summary>WMI の Win32_PnPEntity から取り出した、デバイス1台分の情報。</summary>
+    private record PnpEntity(
+        string Name, string DeviceId, string Description, string Manufacturer,
+        string Status, string Class, string Service, string HardwareId, uint? ProblemCode);
+
+    /// <summary>WMI の Win32_PnPSignedDriver から取り出した、ドライバーのバージョンと日付（日付は WMI の形式のまま）。</summary>
+    private record SignedDriver(string Version, string? RawDate);
+
+    public DeviceScanResult GetDevices(string[] deviceClasses)
     {
+        var (deviceIds, failedClasses) = GetDeviceIdsByClasses(deviceClasses);
+        if (deviceIds.Count == 0) return new DeviceScanResult([], failedClasses);
+
+        // WMI は、1回の問い合わせに約1秒かかる（1台だけを指定しても、全件を取得しても同じ）。
+        // デバイスごとに問い合わせると、数十台で1分以上かかるため、全件を1回で取得してデバイスIDで突き合わせる。
+        var entities = LoadPnpEntities();
+        var drivers = LoadSignedDrivers();
+
         var devices = new List<DeviceInfo>();
-        var deviceIds = GetDeviceIdsByClasses(deviceClasses);
-
-        foreach (var deviceId in deviceIds)
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var id in deviceIds)
         {
-            var deviceInfo = GetDeviceInfoById(deviceId);
-            if (deviceInfo != null)
-            {
-                devices.Add(deviceInfo);
-            }
+            if (!entities.TryGetValue(id, out var entity) || !seen.Add(entity.DeviceId)) continue;
+            devices.Add(CreateDeviceInfo(entity, drivers));
         }
-
-        return RemoveDuplicates(devices);
+        return new DeviceScanResult(devices, failedClasses);
     }
 
-    private List<string> GetDeviceIdsByClasses(string[] deviceClasses)
+    private static (List<string> Ids, int FailedClasses) GetDeviceIdsByClasses(string[] deviceClasses)
     {
         var deviceIds = new List<string>();
+        var failedClasses = 0;
 
         foreach (var deviceClass in deviceClasses)
         {
@@ -34,7 +57,7 @@ public class DeviceService
             {
                 var processInfo = new ProcessStartInfo
                 {
-                    FileName = "pnputil",
+                    FileName = SystemTools.PnpUtil,
                     Arguments = $"/enum-devices /class {deviceClass}",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
@@ -42,71 +65,151 @@ public class DeviceService
                 };
 
                 using var process = Process.Start(processInfo);
-                if (process == null) continue;
+                if (process == null)
+                {
+                    failedClasses++;
+                    continue;
+                }
 
                 var output = process.StandardOutput.ReadToEnd();
                 process.WaitForExit();
-
-                var lines = output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
-                foreach (var line in lines)
-                {
-                    if (line.Contains("インスタンス ID:") || line.Contains("Instance ID:"))
-                    {
-                        var id = line.Split(':').LastOrDefault()?.Trim();
-                        if (!string.IsNullOrEmpty(id))
-                        {
-                            deviceIds.Add(id);
-                        }
-                    }
-                }
+                deviceIds.AddRange(ParseInstanceIds(output));
             }
-            catch
+            catch (Exception ex) when (ex is Win32Exception or IOException or InvalidOperationException)
             {
-                // エラー時は継続
+                failedClasses++;
             }
         }
 
-        return deviceIds;
+        return (deviceIds, failedClasses);
     }
 
-    private DeviceInfo? GetDeviceInfoById(string deviceId)
+    /// <summary>pnputil /enum-devices の出力から、インスタンス ID を取り出す（日本語・英語の表示に対応）。</summary>
+    public static List<string> ParseInstanceIds(string output)
     {
+        var ids = new List<string>();
+        foreach (var line in output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (!line.Contains("インスタンス ID:") && !line.Contains("Instance ID:")) continue;
+
+            var id = line.Split(':').LastOrDefault()?.Trim();
+            if (!string.IsNullOrEmpty(id)) ids.Add(id);
+        }
+        return ids;
+    }
+
+    private static Dictionary<string, PnpEntity> LoadPnpEntities()
+    {
+        using var searcher = new ManagementObjectSearcher(
+            "SELECT Name, DeviceID, Description, Manufacturer, Status, PNPClass, Service, HardwareID, ConfigManagerErrorCode " +
+            "FROM Win32_PnPEntity");
+
+        var entities = new Dictionary<string, PnpEntity>(StringComparer.OrdinalIgnoreCase);
+        foreach (var o in searcher.Get().Cast<ManagementBaseObject>())
+        {
+            using (o)
+            {
+                var entity = new PnpEntity(
+                    WmiHelper.GetPropertyValue(o, "Name"), WmiHelper.GetPropertyValue(o, "DeviceID"),
+                    WmiHelper.GetPropertyValue(o, "Description"), WmiHelper.GetPropertyValue(o, "Manufacturer"),
+                    WmiHelper.GetPropertyValue(o, "Status"), WmiHelper.GetPropertyValue(o, "PNPClass"),
+                    WmiHelper.GetPropertyValue(o, "Service"), WmiHelper.GetPropertyValue(o, "HardwareID"),
+                    o["ConfigManagerErrorCode"] is uint code ? code : null);
+                entities.TryAdd(entity.DeviceId, entity);
+            }
+        }
+        return entities;
+    }
+
+    private static Dictionary<string, SignedDriver> LoadSignedDrivers()
+    {
+        using var searcher = new ManagementObjectSearcher(
+            "SELECT DeviceID, DriverVersion, DriverDate FROM Win32_PnPSignedDriver");
+
+        var drivers = new Dictionary<string, SignedDriver>(StringComparer.OrdinalIgnoreCase);
+        foreach (var o in searcher.Get().Cast<ManagementBaseObject>())
+        {
+            using (o)
+            {
+                var id = o["DeviceID"]?.ToString();
+                if (string.IsNullOrEmpty(id)) continue;
+                drivers.TryAdd(id, new SignedDriver(o["DriverVersion"]?.ToString() ?? Unknown, o["DriverDate"]?.ToString()));
+            }
+        }
+        return drivers;
+    }
+
+    private static DeviceInfo CreateDeviceInfo(PnpEntity entity, Dictionary<string, SignedDriver> drivers)
+    {
+        var device = new DeviceInfo
+        {
+            Name = entity.Name,
+            DeviceId = entity.DeviceId,
+            Description = entity.Description,
+            Manufacturer = entity.Manufacturer,
+            Status = entity.Status,
+            Class = entity.Class,
+            Service = entity.Service,
+            HardwareId = entity.HardwareId
+        };
+
+        if (entity.ProblemCode is { } code)
+        {
+            device.HasProblem = code != 0;
+            device.ProblemCode = ErrorCodeHelper.GetProblemDescription(code);
+        }
+
         try
         {
-            var escapedDeviceId = WmiHelper.EscapeWqlString(deviceId);
-            var query = $"SELECT * FROM Win32_PnPEntity WHERE DeviceID = '{escapedDeviceId}'";
-
-            using var searcher = new ManagementObjectSearcher(query);
-            var collection = searcher.Get();
-
-            foreach (var o in collection)
-            {
-                var device = (ManagementObject)o;
-                var deviceInfo = new DeviceInfo
-                {
-                    Name = WmiHelper.GetPropertyValue(device, "Name"),
-                    DeviceId = WmiHelper.GetPropertyValue(device, "DeviceID"),
-                    Description = WmiHelper.GetPropertyValue(device, "Description"),
-                    Manufacturer = WmiHelper.GetPropertyValue(device, "Manufacturer"),
-                    Status = WmiHelper.GetPropertyValue(device, "Status"),
-                    Class = WmiHelper.GetPropertyValue(device, "PNPClass"),
-                    Service = WmiHelper.GetPropertyValue(device, "Service"),
-                    HardwareId = WmiHelper.GetPropertyValue(device, "HardwareID")
-                };
-
-                SetProblemCode(device, deviceInfo);
-                GetDriverInfo(deviceInfo);
-                return deviceInfo;
-            }
+            ApplyDriverInfo(device, drivers);
         }
-        catch
+        catch (Exception ex)
         {
-            // エラー時はnullを返す
+            device.DriverVersion = $"取得に失敗しました（詳細: {ex.Message}）";
+            device.HasProblem = true;
+            device.ProblemCode = "ドライバー情報取得エラー";
         }
 
-        return null;
+        return device;
     }
 
+    private static void ApplyDriverInfo(DeviceInfo device, Dictionary<string, SignedDriver> drivers)
+    {
+        if (drivers.TryGetValue(device.DeviceId, out var driver))
+        {
+            device.DriverVersion = driver.Version;
+            if (driver.RawDate != null)
+                device.DriverDate = ManagementDateTimeConverter.ToDateTime(driver.RawDate).ToString("yyyy/MM/dd");
+        }
+
+        if (device.DriverVersion == Unknown && ReadServiceDriverInfo(device.Service) is { } info)
+        {
+            if (info.Version != Unknown) device.DriverVersion = info.Version;
+            device.DriverDate = info.Date;
+        }
+    }
+
+    /// <summary>
+    /// サービス名から、カーネルドライバーのファイル（.sys）のバージョンと更新日を読む。
+    /// ドライバー情報（Win32_PnPSignedDriver）が無いデバイスの代わりに使う。
+    /// ドライバーでない場合や、ファイルが無い場合は null を返す。
+    /// </summary>
+    public static (string Version, string Date)? ReadServiceDriverInfo(string service)
+    {
+        if (string.IsNullOrWhiteSpace(service) || service == Unknown || service.IndexOfAny(['\\', '/']) >= 0) return null;
+
+        using var hklm = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
+        using var key = hklm.OpenSubKey($@"SYSTEM\CurrentControlSet\Services\{service}");
+        if (key?.GetValue("Type") is not int type || type is not (ServiceTypeKernelDriver or ServiceTypeFileSystemDriver))
+            return null;
+
+        var image = PathResolver.ResolveDriverImagePath(
+            key.GetValue("ImagePath") as string, service, Environment.GetFolderPath(Environment.SpecialFolder.Windows));
+        if (!File.Exists(image)) return null;
+
+        var version = FileVersionInfo.GetVersionInfo(image).FileVersion;
+        return (string.IsNullOrWhiteSpace(version) ? Unknown : version.Trim(), File.GetLastWriteTime(image).ToString("yyyy/MM/dd"));
+    }
     /// <summary>Windows Updateにドライバーの更新を検索させ、ダウンロードとインストールまで行うPowerShellのスクリプト。</summary>
     private const string DriverUpdateScript = @"
                 $UpdateSession = New-Object -ComObject Microsoft.Update.Session
@@ -153,7 +256,7 @@ public class DeviceService
             {
                 var processInfo = new ProcessStartInfo
                 {
-                    FileName = "powershell",
+                    FileName = SystemTools.PowerShell,
                     Arguments = $"-ExecutionPolicy Bypass -Command \"{DriverUpdateScript.Replace("\"", "\\\"")}\"",
                     UseShellExecute = true,
                     Verb = "runas"
@@ -173,100 +276,22 @@ public class DeviceService
         });
     }
 
-    public void OpenWindowsUpdateSettings()
+    /// <summary>Windows Update の設定画面を開く。開けなかったときは false を返す。</summary>
+    public bool OpenWindowsUpdateSettings()
     {
-        try
+        // 「オプションの更新」の画面を優先し、開けなければ Windows Update の画面を開く
+        foreach (var uri in new[] { "ms-settings:windowsupdate-optionalupdates", "ms-settings:windowsupdate" })
         {
-            var processInfo = new ProcessStartInfo
+            try
             {
-                FileName = "ms-settings:windowsupdate-optionalupdates",
-                UseShellExecute = true
-            };
-            Process.Start(processInfo);
-        }
-        catch
-        {
-            var processInfo = new ProcessStartInfo
-            {
-                FileName = "ms-settings:windowsupdate",
-                UseShellExecute = true
-            };
-            Process.Start(processInfo);
-        }
-    }
-
-    private static void SetProblemCode(ManagementObject device, DeviceInfo deviceInfo)
-    {
-        if (device["ConfigManagerErrorCode"] == null) return;
-
-        var problemCode = (uint)device["ConfigManagerErrorCode"];
-        deviceInfo.HasProblem = problemCode != 0;
-        deviceInfo.ProblemCode = ErrorCodeHelper.GetProblemDescription(problemCode);
-    }
-
-    private static void GetDriverInfo(DeviceInfo device)
-    {
-        try
-        {
-            var escapedDeviceId = WmiHelper.EscapeWqlString(device.DeviceId);
-            var query = $"SELECT * FROM Win32_PnPSignedDriver WHERE DeviceID = '{escapedDeviceId}'";
-
-            using var searcher = new ManagementObjectSearcher(query);
-            var collection = searcher.Get();
-
-            foreach (var o in collection)
-            {
-                var driver = (ManagementObject)o;
-                device.DriverVersion = driver["DriverVersion"]?.ToString() ?? "不明";
-
-                if (driver["DriverDate"] != null)
-                {
-                    var driverDate = ManagementDateTimeConverter.ToDateTime(driver["DriverDate"].ToString());
-                    device.DriverDate = driverDate.ToString("yyyy/MM/dd");
-                }
-
-                break;
+                Process.Start(new ProcessStartInfo { FileName = uri, UseShellExecute = true });
+                return true;
             }
-
-            if (device.DriverVersion == "不明" && !string.IsNullOrEmpty(device.Service))
+            catch (Win32Exception)
             {
-                GetSystemDriverInfo(device);
+                // 次の候補を試す
             }
         }
-        catch (Exception ex)
-        {
-            device.DriverVersion = $"取得に失敗しました（詳細: {ex.Message}）";
-            device.HasProblem = true;
-            device.ProblemCode = "ドライバー情報取得エラー";
-        }
-    }
-
-    private static void GetSystemDriverInfo(DeviceInfo device)
-    {
-        var escapedService = WmiHelper.EscapeWqlString(device.Service);
-        var query = $"SELECT * FROM Win32_SystemDriver WHERE Name = '{escapedService}'";
-
-        using var driverSearcher = new ManagementObjectSearcher(query);
-        var driverCollection = driverSearcher.Get();
-
-        foreach (var o in driverCollection)
-        {
-            var driver = (ManagementObject)o;
-            device.DriverVersion = driver["Version"]?.ToString() ?? "不明";
-
-            if (driver["InstallDate"] != null)
-            {
-                var installDate = ManagementDateTimeConverter.ToDateTime(driver["InstallDate"].ToString());
-                device.DriverDate = installDate.ToString("yyyy/MM/dd");
-            }
-
-            break;
-        }
-    }
-
-    private static List<DeviceInfo> RemoveDuplicates(List<DeviceInfo> devices)
-    {
-        var seenDeviceIds = new HashSet<string>();
-        return devices.Where(device => seenDeviceIds.Add(device.DeviceId)).ToList();
+        return false;
     }
 }

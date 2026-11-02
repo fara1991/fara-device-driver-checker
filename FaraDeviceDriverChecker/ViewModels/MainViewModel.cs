@@ -23,7 +23,7 @@ public class MainViewModel : INotifyPropertyChanged
     {
         ScanCommand = new RelayCommand(async () => await ScanDevicesAsync(), () => IsNotLoading && HasSelectedCategories);
         RunUpdateCommand = new RelayCommand(async () => await RunUpdateAsync(), () => IsNotLoading && HasScanned);
-        OpenSettingsCommand = new RelayCommand(() => _deviceService.OpenWindowsUpdateSettings());
+        OpenSettingsCommand = new RelayCommand(OpenWindowsUpdateSettings);
         ClearFilterCommand = new RelayCommand(ClearFilter);
         ScanLeftoverCommand = new RelayCommand(async () => await ScanLeftoverAsync(), () => IsNotLoading);
         ExportCommand = new RelayCommand(ExportReport, () => IsNotLoading && (HasScanned || _leftoverResult != null));
@@ -306,7 +306,8 @@ public class MainViewModel : INotifyPropertyChanged
             var categoryNames = string.Join("、", selectedCategories.Select(c => c.Name));
             StatusMessage = $"{categoryNames}をスキャン中…";
 
-            var devices = await Task.Run(() => _deviceService.GetDevices(allClasses));
+            var result = await Task.Run(() => _deviceService.GetDevices(allClasses));
+            var devices = result.Devices;
 
             foreach (var device in devices.OrderByDescending(d => d.HasProblem))
             {
@@ -314,7 +315,8 @@ public class MainViewModel : INotifyPropertyChanged
             }
 
             var problemCount = devices.Count(d => d.HasProblem);
-            StatusMessage = $"{devices.Count}件のデバイス / 問題: {problemCount}件";
+            StatusMessage = $"{devices.Count}件のデバイス / 問題: {problemCount}件" +
+                            (result.FailedCount > 0 ? $"（一覧を取得できなかったクラス: {result.FailedCount}件）" : "");
             HasScanned = true;
         }
         catch (Exception ex)
@@ -324,6 +326,14 @@ public class MainViewModel : INotifyPropertyChanged
         finally
         {
             IsLoading = false;
+        }
+    }
+
+    private void OpenWindowsUpdateSettings()
+    {
+        if (!_deviceService.OpenWindowsUpdateSettings())
+        {
+            StatusMessage = "Windows Updateの設定を開けませんでした";
         }
     }
 
