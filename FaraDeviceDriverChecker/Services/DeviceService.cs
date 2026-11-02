@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Management;
-using System.Security;
 using Microsoft.Win32;
 using Models;
 using Utilities;
@@ -12,7 +11,7 @@ using Utilities;
 /// <summary>デバイスのスキャン結果。FailedCount は、デバイスの一覧を取得できなかったクラスの数。</summary>
 public record DeviceScanResult(List<DeviceInfo> Devices, int FailedCount);
 
-public class DeviceService
+public static class DeviceService
 {
     private const string Unknown = "不明";
     private const int ServiceTypeKernelDriver = 1;
@@ -26,7 +25,7 @@ public class DeviceService
     /// <summary>WMI の Win32_PnPSignedDriver から取り出した、ドライバーのバージョンと日付（日付は WMI の形式のまま）。</summary>
     private record SignedDriver(string Version, string? RawDate);
 
-    public DeviceScanResult GetDevices(string[] deviceClasses)
+    public static DeviceScanResult GetDevices(string[] deviceClasses)
     {
         var (deviceIds, failedClasses) = GetDeviceIdsByClasses(deviceClasses);
         if (deviceIds.Count == 0) return new DeviceScanResult([], failedClasses);
@@ -248,7 +247,7 @@ public class DeviceService
                 exit 0
 ";
 
-    public async Task<(bool success, string message)> RunWindowsUpdateAsync()
+    public static async Task<(bool success, string message)> RunWindowsUpdateAsync()
     {
         return await Task.Run(() =>
         {
@@ -277,7 +276,7 @@ public class DeviceService
     }
 
     /// <summary>Windows Update の設定画面を開く。開けなかったときは false を返す。</summary>
-    public bool OpenWindowsUpdateSettings()
+    public static bool OpenWindowsUpdateSettings()
     {
         // 「オプションの更新」の画面を優先し、開けなければ Windows Update の画面を開く
         foreach (var uri in new[] { "ms-settings:windowsupdate-optionalupdates", "ms-settings:windowsupdate" })

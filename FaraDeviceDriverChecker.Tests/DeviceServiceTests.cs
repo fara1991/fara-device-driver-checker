@@ -53,7 +53,7 @@ public class DeviceServiceTests
     public void 実機でデバイスの一覧を数十秒以内に取得できる()
     {
         var sw = System.Diagnostics.Stopwatch.StartNew();
-        var result = new DeviceService().GetDevices(["Media", "AudioEndpoint"]);
+        var result = DeviceService.GetDevices(["Media", "AudioEndpoint"]);
         sw.Stop();
 
         Assert.Equal(0, result.FailedCount);

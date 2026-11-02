@@ -15,7 +15,6 @@ using Services;
 
 public class MainViewModel : INotifyPropertyChanged
 {
-    private readonly DeviceService _deviceService = new();
     private bool _isLoading;
     private bool _hasScanned;
     private string _statusMessage = "デバイスカテゴリを選択してスキャンしてください";
@@ -315,7 +314,7 @@ public class MainViewModel : INotifyPropertyChanged
             var categoryNames = string.Join("、", selectedCategories.Select(c => c.Name));
             StatusMessage = $"{categoryNames}をスキャン中…";
 
-            var result = await Task.Run(() => _deviceService.GetDevices(allClasses));
+            var result = await Task.Run(() => DeviceService.GetDevices(allClasses));
             var devices = result.Devices;
 
             foreach (var device in devices.OrderByDescending(d => d.HasProblem))
@@ -340,7 +339,7 @@ public class MainViewModel : INotifyPropertyChanged
 
     private void OpenWindowsUpdateSettings()
     {
-        if (!_deviceService.OpenWindowsUpdateSettings())
+        if (!DeviceService.OpenWindowsUpdateSettings())
         {
             StatusMessage = "Windows Updateの設定を開けませんでした";
         }
@@ -353,7 +352,7 @@ public class MainViewModel : INotifyPropertyChanged
 
         try
         {
-            var (success, message) = await _deviceService.RunWindowsUpdateAsync();
+            var (success, message) = await DeviceService.RunWindowsUpdateAsync();
             StatusMessage = message;
 
             if (success)
