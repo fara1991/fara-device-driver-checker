@@ -73,7 +73,7 @@ public static partial class PnpUtilParser
             if (!m.Success) continue;
             if (DateTime.TryParse(m.Groups[1].Value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var d))
                 date = d;
-            Version.TryParse(m.Groups[2].Value, out version);
+            version = Version.TryParse(m.Groups[2].Value, out var parsed) ? parsed : null;
             break;
         }
 
