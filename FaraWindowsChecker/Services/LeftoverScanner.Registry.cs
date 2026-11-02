@@ -55,7 +55,8 @@ public partial class LeftoverScanner
             {
                 Add(CatRegistry, LeftoverSeverity.Review,
                     $"アンインストーラーが存在しません: {e.DisplayName}", e.RegistryPath,
-                    $"{e.View}のUninstall情報が、存在しない実行ファイルを指しています: {exe}", command);
+                    $"{e.View}のUninstall情報が、存在しない実行ファイルを指しています: {exe}", command,
+                    guidance: LeftoverGuidance.UninstallerMissing);
                 continue;
             }
 
@@ -63,7 +64,8 @@ public partial class LeftoverScanner
             {
                 Add(CatRegistry, LeftoverSeverity.Caution,
                     $"インストール先が存在しません: {e.DisplayName}", e.RegistryPath,
-                    $"{e.View}のInstallLocationが見つかりません: {e.InstallLocation}", command);
+                    $"{e.View}のInstallLocationが見つかりません: {e.InstallLocation}", command,
+                    guidance: LeftoverGuidance.InstallLocationMissing);
                 continue;
             }
 
@@ -74,8 +76,8 @@ public partial class LeftoverScanner
             {
                 Add(CatRegistry, LeftoverSeverity.Review,
                     $"MSIの登録が無いUninstall情報: {e.DisplayName}", e.RegistryPath,
-                    $"{e.View}にUninstall情報がありますが、HKLM\\{InstallerProductsPath}\\{packed}がありません。" +
-                    "アンインストールが失敗する原因になります。", command);
+                    $"{e.View}にUninstall情報がありますが、HKLM\\{InstallerProductsPath}\\{packed}がありません。", command,
+                    guidance: LeftoverGuidance.MsiRegistrationMissing);
             }
         }
     }
@@ -118,16 +120,18 @@ public partial class LeftoverScanner
             {
                 Add(CatRegistry, LeftoverSeverity.Review,
                     $"キャッシュ済みMSIが存在しません: {label}", userDataPath,
-                    $"LocalPackageが見つかりません: {localPackage}。修復・アンインストールが失敗する原因になります。",
+                    $"LocalPackageが見つかりません: {localPackage}",
                     JoinCommands(DeleteWithBackupCommand(userDataPath, $"backup-userdata-{packed}"),
-                        DeleteWithBackupCommand(productsPath, $"backup-products-{packed}")));
+                        DeleteWithBackupCommand(productsPath, $"backup-products-{packed}")),
+                    guidance: LeftoverGuidance.CachedMsiMissing);
             }
             else if (!uninstallGuids.Contains(guid) && !_userDataDenied && !userDataKnown)
             {
                 Add(CatRegistry, LeftoverSeverity.Caution,
                     $"Installer\\Productsにだけ残る登録: {label}", productsPath,
                     "Uninstall情報もUserDataのInstallPropertiesもありません。",
-                    DeleteWithBackupCommand(productsPath, $"backup-products-{packed}"));
+                    DeleteWithBackupCommand(productsPath, $"backup-products-{packed}"),
+                    guidance: LeftoverGuidance.ProductsOnly);
             }
 
             if (storeInfNames != null && !string.IsNullOrEmpty(localPackage) && File.Exists(localPackage))
@@ -174,7 +178,8 @@ public partial class LeftoverScanner
                     $"Installer\\UserDataにだけ残る登録: {(name != "" ? name : guid)}", userDataPath,
                     $"Installer\\Products\\{packed}が無いのにUserDataが残っています（製品コード {guid}）。" +
                     "Productsだけを手動で削除した後などに起きます。",
-                    DeleteWithBackupCommand(userDataPath, $"backup-userdata-{packed}"));
+                    DeleteWithBackupCommand(userDataPath, $"backup-userdata-{packed}"),
+                    guidance: LeftoverGuidance.UserDataOnly);
             }
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or SecurityException)
@@ -206,11 +211,9 @@ public partial class LeftoverScanner
             if (!isStorage && !hasDriverTable) continue;
             Add(CatDriverRef, isStorage ? LeftoverSeverity.Review : LeftoverSeverity.Caution,
                 $"{label}が参照するINFがドライバーストアにありません: {inf}", productCode,
-                "アンインストール時にドライバー削除（DiUninstallDriver）が0x490（ERROR_NOT_FOUND）で失敗し、" +
-                "MSIが1603で終了する原因になります。" +
-                (isStorage ? "ストレージ系のINFのため、手動で削除・登録解除しないでください。" : "") +
-                $"（参照元MSI: {localPackage}。Fileテーブルの.infを基にした推定で、未選択の機能のINFも含み得ます）",
-                "pnputil /enum-drivers", isStorage);
+                $"参照元MSI: {localPackage}。Fileテーブルの.infを基にした推定で、未選択の機能のINFも含み得ます。",
+                "pnputil /enum-drivers", isStorage,
+                LeftoverGuidance.MsiInfNotInStore(isStorage));
         }
     }
 }

@@ -38,7 +38,8 @@ public partial class LeftoverScanner
                 $"登録の無いPackage Cache: {Path.GetFileName(dir)}", dir,
                 $"Uninstall・Installer\\Products・Dependenciesのいずれにも{guid}が見つかりません。" +
                 $"サイズ: {FormatSize(DirectorySize(dir))}",
-                RemoveFolderCommand(dir, "-Recurse -Force"));
+                RemoveFolderCommand(dir, "-Recurse -Force"),
+                guidance: LeftoverGuidance.PackageCacheOrphan);
         }
     }
 
@@ -73,7 +74,8 @@ public partial class LeftoverScanner
                     $"登録の無い製品フォルダー: {relative}", folder,
                     $"「{keyword}」を含む製品がUninstall / Installer\\Productsに登録されていません。" +
                     "アンインストール後に残ったフォルダーの可能性があります。",
-                    RemoveFolderCommand(folder, "-Recurse -Force"));
+                    RemoveFolderCommand(folder, "-Recurse -Force"),
+                    guidance: LeftoverGuidance.ProductFolderOrphan);
             }
 
             // 中身がファイルを1つも持たない空のフォルダー（ベンダー直下）
@@ -83,7 +85,8 @@ public partial class LeftoverScanner
                 Add(CatFolder, LeftoverSeverity.Info,
                     $"ファイルの無い空のフォルダー: {Path.GetFileName(vendor)}", vendor,
                     "配下にファイルが1つもありません。",
-                    RemoveFolderCommand(vendor, "-Recurse"));
+                    RemoveFolderCommand(vendor, "-Recurse"),
+                    guidance: LeftoverGuidance.EmptyFolder);
             }
         }
     }

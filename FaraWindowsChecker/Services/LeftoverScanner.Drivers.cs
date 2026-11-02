@@ -42,8 +42,9 @@ public partial class LeftoverScanner
             var name = d.DeviceName != "" ? d.DeviceName : "（名前なし）";
             Add(CatDriverRef, LeftoverSeverity.Review,
                 $"デバイスが存在しないINFを参照しています: {name}", d.DeviceId,
-                $"{d.InfName}が{infDir}にありません。ドライバーの再インストールが必要な可能性があります。",
-                GetPnpDeviceCommand(d.DeviceId), StorageGuard.IsStorageName(d.InfName));
+                $"{d.InfName}が{infDir}にありません。",
+                GetPnpDeviceCommand(d.DeviceId), StorageGuard.IsStorageName(d.InfName),
+                LeftoverGuidance.DeviceReferencesMissingInf(StorageGuard.IsStorageName(d.InfName)));
         }
     }
 
@@ -115,11 +116,11 @@ public partial class LeftoverScanner
                                 StorageGuard.IsStorageName(old.ClassName);
                 var detail = $"最新: {DescribePackage(newest, includeDate: false)} / この旧版: {DescribePackage(old, includeDate: true)} / " +
                              $"プロバイダー: {old.Provider} / クラス: {old.ClassName}。" +
-                             (used ? "デバイスが使用中のため削除しないでください。" : "どのデバイスにも使われていません。") +
-                             (isStorage ? "ストレージ系のため削除対象として提案しません。" : "");
+                             (used ? "この旧版は、デバイスが使用中です。" : "この旧版は、どのデバイスにも使われていません。");
                 Add(CatDuplicate, used || isStorage ? LeftoverSeverity.Info : LeftoverSeverity.Caution,
                     $"同名ドライバーの旧版: {old.OriginalName} ({old.PublishedName})", old.PublishedName, detail,
-                    used || isStorage ? "" : DeleteDriverCommand(old.PublishedName), isStorage);
+                    used || isStorage ? "" : DeleteDriverCommand(old.PublishedName), isStorage,
+                    LeftoverGuidance.DuplicateDriver(used, isStorage));
             }
         }
     }
@@ -151,7 +152,8 @@ public partial class LeftoverScanner
             Add(CatProblem, code != 0 ? LeftoverSeverity.Review : LeftoverSeverity.Caution,
                 name, id,
                 $"Status: {status} / クラス: {o["PNPClass"]} / エラーコード: {code}（{ErrorCodeHelper.GetProblemDescription(code)}）",
-                GetPnpDeviceCommand(id));
+                GetPnpDeviceCommand(id),
+                guidance: LeftoverGuidance.ProblemDevice(code));
         }
     }
 }

@@ -6,7 +6,7 @@
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:vm="clr-namespace:FaraWindowsChecker.ViewModels"
         mc:Ignorable="d"
-        Title="FaraWindowsChecker" Height="780" Width="1100" MinHeight="700" MinWidth="900"
+        Title="FaraWindowsChecker" Height="860" Width="1280" MinHeight="640" MinWidth="900"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource MaterialDesign.Brush.Background}"
         TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
@@ -23,12 +23,20 @@
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
 
-        <!-- 列見出しの文字色を濃くして、コントラストを 4.5:1 以上にする -->
+        <!-- 列見出しの文字色を濃くして、コントラストを4.5:1以上にする -->
         <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource MaterialDesignDataGridColumnHeader}">
             <Setter Property="Foreground" Value="#595959" />
         </Style>
 
         <!-- 長い文字列は省略記号で切り、全文をToolTipで見られるようにする -->
+        <!-- 詳細パネルの小見出し -->
+        <Style x:Key="SectionHeader" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#4527A0" />
+            <Setter Property="Margin" Value="0,12,0,3" />
+        </Style>
+
         <Style x:Key="CellEllipsis" TargetType="TextBlock">
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
             <Setter Property="ToolTip" Value="{Binding RelativeSource={RelativeSource Self}, Path=Text}" />
@@ -194,8 +202,6 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" MinHeight="100" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="150" MinHeight="90" />
                         </Grid.RowDefinitions>
 
                         <materialDesign:Card Grid.Row="0" Padding="12" Margin="0,0,0,12">
@@ -243,7 +249,13 @@
                             </StackPanel>
                         </materialDesign:Card>
 
-                        <materialDesign:Card Grid.Row="1" Padding="0">
+                        <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" MinWidth="440" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="440" MinWidth="300" />
+                        </Grid.ColumnDefinitions>
+                        <materialDesign:Card Grid.Column="0" Padding="0">
                             <Grid>
                             <DataGrid AutomationProperties.Name="残骸チェックの検出結果の一覧" ItemsSource="{Binding LeftoverView}"
                                       SelectedItem="{Binding SelectedLeftover}"
@@ -286,7 +298,7 @@
                                                         ElementStyle="{StaticResource CellEllipsis}" />
                                     <DataGridTextColumn Header="内容" Binding="{Binding Title}" Width="*"
                                                         ElementStyle="{StaticResource CellEllipsis}" />
-                                    <DataGridTextColumn Header="対象" Binding="{Binding Target}" Width="300"
+                                    <DataGridTextColumn Header="対応の目安" Binding="{Binding ActionSummary}" Width="140"
                                                         ElementStyle="{StaticResource CellEllipsis}" />
                                 </DataGrid.Columns>
                             </DataGrid>
@@ -297,14 +309,16 @@
                             </Grid>
                         </materialDesign:Card>
 
-                        <GridSplitter AutomationProperties.Name="一覧と詳細の境界（ドラッグで高さを変更）" Grid.Row="2" Height="12" HorizontalAlignment="Stretch" VerticalAlignment="Center"
-                                      ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
-                                      Background="Transparent" Cursor="SizeNS"
-                                      ToolTip="ドラッグして、一覧と詳細の高さを変えられます" />
+                        <GridSplitter AutomationProperties.Name="一覧と詳細の境界（ドラッグで幅を変更）" Grid.Column="1" Width="12"
+                                      HorizontalAlignment="Center" VerticalAlignment="Stretch"
+                                      ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
+                                      Background="Transparent" Cursor="SizeWE"
+                                      ToolTip="ドラッグして、一覧と詳細の幅を変えられます" />
 
-                        <materialDesign:Card Grid.Row="3" Padding="12">
+                        <materialDesign:Card Grid.Column="2" Padding="16,12">
                             <Grid>
-                                <TextBlock Text="一覧の行を選ぶと、詳細と案内コマンドがここに表示されます。"
+                                <TextBlock Text="一覧の行を選ぶと、状態・影響・対応と、案内コマンドがここに表示されます。"
+                                           TextWrapping="Wrap" TextAlignment="Center"
                                            VerticalAlignment="Center" HorizontalAlignment="Center" Opacity="0.7">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
@@ -332,11 +346,70 @@
                                         <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
                                     <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                        <StackPanel>
+                                        <StackPanel Margin="0,0,8,0">
+                                            <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontSize="15" FontWeight="Bold" />
+                                            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                                <materialDesign:PackIcon Width="16" Height="16" VerticalAlignment="Center">
+                                                    <materialDesign:PackIcon.Style>
+                                                        <Style TargetType="materialDesign:PackIcon">
+                                                            <Setter Property="Kind" Value="Information" />
+                                                            <Setter Property="Foreground" Value="#616161" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Severity}" Value="Review">
+                                                                    <Setter Property="Kind" Value="AlertCircle" />
+                                                                    <Setter Property="Foreground" Value="#C62828" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Severity}" Value="Caution">
+                                                                    <Setter Property="Kind" Value="Alert" />
+                                                                    <Setter Property="Foreground" Value="#E65100" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </materialDesign:PackIcon.Style>
+                                                </materialDesign:PackIcon>
+                                                <TextBlock Text="{Binding SeverityDisplay}" Margin="6,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold" />
+                                                <TextBlock Text="{Binding Category, StringFormat=' / {0}'}" VerticalAlignment="Center" Opacity="0.7" />
+                                            </StackPanel>
+
+                                            <TextBlock Style="{StaticResource SectionHeader}" Text="今の状態" />
                                             <TextBlock Text="{Binding Detail}" TextWrapping="Wrap" />
-                                            <TextBlock Text="案内コマンド（自動実行はされません）" FontWeight="Bold" Margin="0,8,0,2" />
+
+                                            <StackPanel>
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Impact}" Value="">
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+                                                <TextBlock Style="{StaticResource SectionHeader}" Text="放置した場合の影響" />
+                                                <TextBlock Text="{Binding Impact}" TextWrapping="Wrap" />
+                                            </StackPanel>
+
+                                            <StackPanel>
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Action}" Value="">
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+                                                <TextBlock Style="{StaticResource SectionHeader}" Text="推奨する対応" />
+                                                <TextBlock Text="{Binding ActionSummary}" FontWeight="Bold" Margin="0,0,0,2" />
+                                                <TextBlock Text="{Binding Action}" TextWrapping="Wrap" />
+                                            </StackPanel>
+
+                                            <TextBlock Style="{StaticResource SectionHeader}" Text="案内コマンド（自動実行はされません）" />
                                             <TextBox AutomationProperties.Name="案内コマンド" Text="{Binding CommandDisplay, Mode=OneWay}" IsReadOnly="True"
-                                                     FontFamily="Consolas" TextWrapping="Wrap" />
+                                                     FontFamily="Consolas" TextWrapping="NoWrap" HorizontalScrollBarVisibility="Auto" />
+                                            <TextBlock Style="{StaticResource SectionHeader}" Text="対象" />
+                                            <TextBox AutomationProperties.Name="対象" Text="{Binding Target, Mode=OneWay}" IsReadOnly="True"
+                                                     TextWrapping="Wrap" BorderThickness="0" Padding="0" />
+
                                         </StackPanel>
                                     </ScrollViewer>
                                     <Button AutomationProperties.Name="案内コマンドをコピー" Grid.Row="1" HorizontalAlignment="Left" Margin="0,8,0,0"
@@ -347,6 +420,7 @@
                                 </Grid>
                             </Grid>
                         </materialDesign:Card>
+                        </Grid>
                     </Grid>
                 </TabItem>
                 </TabControl>

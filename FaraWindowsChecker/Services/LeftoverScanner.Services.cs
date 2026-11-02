@@ -42,7 +42,8 @@ public partial class LeftoverScanner
             {
                 Add(CatService, LeftoverSeverity.Review,
                     $"実行ファイルの無いサービス: {display}", name,
-                    $"状態: {state} / 開始: {startMode} / 実体なし: {exe}", command);
+                    $"状態: {state} / 開始: {startMode} / 実体なし: {exe}", command,
+                    guidance: LeftoverGuidance.ServiceMissingExe);
             }
             else if (state == "Stopped" && startMode == "Disabled" &&
                      programRoots.Any(r => PathResolver.IsUnderDirectory(exe, r)))
@@ -51,7 +52,8 @@ public partial class LeftoverScanner
                     ? "Intel RSTのサービスで、アンインストール後に残る例があります。" : "";
                 Add(CatService, LeftoverSeverity.Caution,
                     $"停止・無効のまま残るサービス: {display}", name,
-                    $"実行ファイル: {exe}。{known}利用者が意図して無効化している場合は対象外です。", command);
+                    $"状態: 停止 / 開始: 無効 / 実行ファイル: {exe}。{known}", command,
+                    guidance: LeftoverGuidance.ServiceStoppedDisabled);
             }
         }
     }
@@ -84,7 +86,8 @@ public partial class LeftoverScanner
         {
             Add(CatInfo, LeftoverSeverity.Info, $"読み取れないサービス登録が{unreadable}件あります",
                 $@"HKLM\{ServicesPath}",
-                "アクセスが拒否されたため確認できませんでした。管理者として起動し直すと確認できる場合があります。");
+                "アクセスが拒否されたため確認できませんでした。",
+                guidance: LeftoverGuidance.Unreadable);
         }
     }
 
@@ -109,9 +112,8 @@ public partial class LeftoverScanner
         var loadedAtBoot = start <= StartAuto;
         Add(CatService, loadedAtBoot ? LeftoverSeverity.Review : LeftoverSeverity.Caution,
             $"実体の無いドライバーのサービス登録: {name}", regPath,
-            $"開始: {startText} / ドライバーファイルが見つかりません: {image}。" +
-            (loadedAtBoot ? "起動時に読み込まれる設定のため、起動エラーの原因になり得ます。" : "") +
-            (isStorage ? "ストレージ系のため、手動で削除しないでください。" : ""),
-            isStorage ? "" : DeleteWithBackupCommand(regPath, $"backup-service-{name}"), isStorage);
+            $"開始: {startText} / ドライバーファイルが見つかりません: {image}",
+            isStorage ? "" : DeleteWithBackupCommand(regPath, $"backup-service-{name}"), isStorage,
+            LeftoverGuidance.KernelDriverServiceMissing(loadedAtBoot, isStorage));
     }
 }

@@ -23,6 +23,18 @@ public class LeftoverItem
 
     public string Detail { get; init; } = "";
 
+    /// <summary>影響と対応の案内。</summary>
+    public LeftoverGuidance? Guidance { get; init; }
+
+    /// <summary>対応の目安（一覧に表示する短い言葉）。</summary>
+    public string ActionSummary => Guidance?.Summary ?? "";
+
+    /// <summary>放置した場合の影響。</summary>
+    public string Impact => Guidance?.Impact ?? "";
+
+    /// <summary>推奨する対応。</summary>
+    public string Action => Guidance?.Action ?? "";
+
     /// <summary>手動で実行する場合の案内コマンド。ストレージ系などの保護対象では空にする。</summary>
     public string SuggestedCommand { get; init; } = "";
 

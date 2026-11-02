@@ -174,6 +174,14 @@ public class LogicTests
             _output.WriteLine($"[{i.SeverityDisplay}] {i.Category} | {i.Title} | {i.Target}");
         Assert.DoesNotContain(result.Items, i => i.Title.Contains("の確認に失敗しました"));
 
+        // すべての項目に、対応の目安・影響・対応が添えられている
+        Assert.All(result.Items, i =>
+        {
+            Assert.False(string.IsNullOrEmpty(i.ActionSummary), $"対応の目安が無い: {i.Title}");
+            Assert.False(string.IsNullOrEmpty(i.Impact), $"影響が無い: {i.Title}");
+            Assert.False(string.IsNullOrEmpty(i.Action), $"対応が無い: {i.Title}");
+        });
+
         // ストレージ系は案内コマンドを出さない
         Assert.All(result.Items.Where(i => i.IsProtected), i => Assert.Contains("提案しません", i.CommandDisplay));
         Assert.DoesNotContain(result.Items, i => i.SuggestedCommand.Contains("delete-driver", StringComparison.OrdinalIgnoreCase)

@@ -163,7 +163,8 @@ public class MainViewModel : INotifyPropertyChanged
             item.Title.Contains(word, StringComparison.OrdinalIgnoreCase) ||
             item.Target.Contains(word, StringComparison.OrdinalIgnoreCase) ||
             item.Detail.Contains(word, StringComparison.OrdinalIgnoreCase) ||
-            item.Category.Contains(word, StringComparison.OrdinalIgnoreCase));
+            item.Category.Contains(word, StringComparison.OrdinalIgnoreCase) ||
+            item.ActionSummary.Contains(word, StringComparison.OrdinalIgnoreCase));
     }
 
     private void OnFilterChanged()

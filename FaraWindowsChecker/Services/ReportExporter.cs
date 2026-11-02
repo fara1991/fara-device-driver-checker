@@ -46,7 +46,9 @@ public static class ReportExporter
                 {
                     sb.AppendLine($"- [{i.SeverityDisplay}] {i.Title}");
                     sb.AppendLine($"    対象: {i.Target}");
-                    if (i.Detail != "") sb.AppendLine($"    詳細: {i.Detail}");
+                    if (i.Detail != "") sb.AppendLine($"    今の状態: {i.Detail}");
+                    if (i.Impact != "") sb.AppendLine($"    放置した場合の影響: {i.Impact}");
+                    if (i.Action != "") sb.AppendLine($"    推奨する対応（{i.ActionSummary}）: {i.Action}");
                     if (i.CommandDisplay != "")
                     {
                         sb.AppendLine("    案内コマンド:");
@@ -87,6 +89,9 @@ public static class ReportExporter
                     i.Title,
                     i.Target,
                     i.Detail,
+                    impact = i.Impact,
+                    action = i.Action,
+                    actionSummary = i.ActionSummary,
                     i.IsProtected,
                     suggestedCommand = i.IsProtected ? "" : i.SuggestedCommand
                 })

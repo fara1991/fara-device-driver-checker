@@ -102,14 +102,16 @@ public partial class LeftoverScanner
         {
             Add(CatInfo, LeftoverSeverity.Info, $"読み取れないフォルダーが{_unreadablePaths}件あります",
                 "Program Files / Package Cache",
-                "アクセスが拒否されたか、読み取り中にエラーが発生したため、確認できませんでした。");
+                "アクセスが拒否されたか、読み取り中にエラーが発生したため、確認できませんでした。",
+                guidance: LeftoverGuidance.Unreadable);
         }
 
         if (_userDataDenied)
         {
             Add(CatInfo, LeftoverSeverity.Info, "Installer\\UserDataを読み取れませんでした",
                 UserDataProductsPath,
-                "アクセスが拒否されました。管理者として起動し直すとMSIのキャッシュ登録も確認できます。");
+                "アクセスが拒否されました。MSIのキャッシュ登録を確認できていません。",
+                guidance: LeftoverGuidance.Unreadable);
         }
 
         var order = new[] { LeftoverSeverity.Review, LeftoverSeverity.Caution, LeftoverSeverity.Info };
@@ -136,7 +138,8 @@ public partial class LeftoverScanner
         }
         catch (Exception ex)
         {
-            Add(CatInfo, LeftoverSeverity.Info, $"「{name}」の確認に失敗しました", name, ex.Message);
+            Add(CatInfo, LeftoverSeverity.Info, $"「{name}」の確認に失敗しました", name, ex.Message,
+                guidance: LeftoverGuidance.CheckFailed);
             return default;
         }
     }
@@ -144,7 +147,7 @@ public partial class LeftoverScanner
     private void Guarded(string name, Action action) => Guarded<object?>(name, () => { action(); return null; });
 
     private void Add(string category, LeftoverSeverity severity, string title, string target,
-        string detail = "", string command = "", bool isProtected = false)
+        string detail = "", string command = "", bool isProtected = false, LeftoverGuidance? guidance = null)
     {
         _items.Add(new LeftoverItem
         {
@@ -154,7 +157,8 @@ public partial class LeftoverScanner
             Target = target,
             Detail = detail,
             SuggestedCommand = command,
-            IsProtected = isProtected
+            IsProtected = isProtected,
+            Guidance = guidance
         });
     }
 
