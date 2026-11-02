@@ -6,7 +6,7 @@
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:vm="clr-namespace:FaraDeviceDriverChecker.ViewModels"
         mc:Ignorable="d"
-        Title="FaraDeviceDriverChecker" Height="650" Width="1050"
+        Title="FaraDeviceDriverChecker" Height="780" Width="1100"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource MaterialDesign.Brush.Background}"
         TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
@@ -49,18 +49,29 @@
                                        VerticalAlignment="Center" Margin="12,0,0,0" />
                         </StackPanel>
 
-                        <Button Grid.Column="1" Command="{Binding OpenSettingsCommand}"
-                                Style="{StaticResource MaterialDesignOutlinedButton}">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="Cog" VerticalAlignment="Center" />
-                                <TextBlock Text="設定を開く" Margin="8,0,0,0" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Button Command="{Binding ExportCommand}" Margin="0,0,8,0"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="ContentSave" VerticalAlignment="Center" />
+                                    <TextBlock Text="エクスポート" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{Binding OpenSettingsCommand}"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Cog" VerticalAlignment="Center" />
+                                    <TextBlock Text="設定を開く" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
                     </Grid>
                 </materialDesign:Card>
 
                 <!-- メインエリア -->
-                <Grid Grid.Row="1">
+                <TabControl Grid.Row="1">
+                <TabItem Header="ドライバー診断">
+                <Grid Margin="0,12,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="180" />
                         <ColumnDefinition Width="*" />
@@ -188,6 +199,80 @@
                     </DataGrid>
                 </materialDesign:Card>
                 </Grid>
+                </TabItem>
+
+                <TabItem Header="アンインストール漏れチェック">
+                    <Grid Margin="0,12,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <materialDesign:Card Grid.Row="0" Padding="12" Margin="0,0,0,12">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Command="{Binding ScanLeftoverCommand}"
+                                            Style="{StaticResource MaterialDesignRaisedButton}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="Magnify" VerticalAlignment="Center" />
+                                            <TextBlock Text="残骸をチェック" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Command="{Binding RestartAsAdminCommand}" Margin="12,0,0,0"
+                                            Style="{StaticResource MaterialDesignOutlinedButton}">
+                                        <TextBlock Text="管理者として再起動" />
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock Text="{Binding AdminStatus}" Margin="0,8,0,0" Opacity="0.7" />
+                                <TextBlock TextWrapping="Wrap" Margin="0,4,0,0" Opacity="0.7"
+                                           Text="このチェックは読み取り専用です。削除などは自動で実行しません。案内コマンドは内容を確認し、管理者権限で手動実行してください。ストレージ系ドライバー（iastorvd 等）は削除対象として提案しません。" />
+                            </StackPanel>
+                        </materialDesign:Card>
+
+                        <materialDesign:Card Grid.Row="1" Padding="0">
+                            <DataGrid ItemsSource="{Binding LeftoverItems}"
+                                      SelectedItem="{Binding SelectedLeftover}"
+                                      AutoGenerateColumns="False"
+                                      IsReadOnly="True"
+                                      SelectionMode="Single"
+                                      CanUserAddRows="False"
+                                      HeadersVisibility="Column"
+                                      GridLinesVisibility="Horizontal"
+                                      BorderThickness="0">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="重要度" Binding="{Binding SeverityDisplay}" Width="70" />
+                                    <DataGridTextColumn Header="分類" Binding="{Binding Category}" Width="150" />
+                                    <DataGridTextColumn Header="内容" Binding="{Binding Title}" Width="*" />
+                                    <DataGridTextColumn Header="対象" Binding="{Binding Target}" Width="300" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </materialDesign:Card>
+
+                        <materialDesign:Card Grid.Row="2" Padding="12" Margin="0,12,0,0" Height="170">
+                            <Grid DataContext="{Binding SelectedLeftover}">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Detail}" TextWrapping="Wrap" />
+                                        <TextBlock Text="案内コマンド（自動実行はされません）" FontWeight="Bold" Margin="0,8,0,2" />
+                                        <TextBox Text="{Binding CommandDisplay, Mode=OneWay}" IsReadOnly="True"
+                                                 FontFamily="Consolas" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </ScrollViewer>
+                                <Button Grid.Row="1" HorizontalAlignment="Left" Margin="0,8,0,0"
+                                        Command="{Binding DataContext.CopyCommandTextCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        Style="{StaticResource MaterialDesignOutlinedButton}">
+                                    <TextBlock Text="コマンドをコピー" />
+                                </Button>
+                            </Grid>
+                        </materialDesign:Card>
+                    </Grid>
+                </TabItem>
+                </TabControl>
 
                 <!-- ステータスバー -->
                 <materialDesign:Card Grid.Row="2" Padding="12" Margin="0,16,0,0">
