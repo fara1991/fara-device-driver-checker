@@ -1,3 +1,4 @@
+using FaraDeviceDriverChecker.Models;
 using FaraDeviceDriverChecker.Services;
 using FaraDeviceDriverChecker.Utilities;
 using Xunit;
@@ -121,6 +122,13 @@ public class LogicTests
     [InlineData(null, false)]
     public void 単一引用符の中に埋め込んでよい値だけを許可する(string? value, bool expected)
         => Assert.Equal(expected, CommandGuard.IsSafeInSingleQuotes(value));
+
+    [Fact]
+    public void 重要度の表示名は全ての値で重複しない()
+    {
+        var names = Enum.GetValues<LeftoverSeverity>().Select(LeftoverItem.GetSeverityDisplay).ToList();
+        Assert.Equal(names.Count, names.Distinct().Count());
+    }
 
     /// <summary>実機で全チェックを実行し、例外なく完了することと結果を確認する（読み取り専用）。</summary>
     [Fact]

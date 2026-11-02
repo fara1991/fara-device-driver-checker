@@ -29,7 +29,10 @@ public class LeftoverItem
     /// <summary>ストレージ系など、削除対象として提案しない項目。</summary>
     public bool IsProtected { get; init; }
 
-    public string SeverityDisplay => Severity switch
+    public string SeverityDisplay => GetSeverityDisplay(Severity);
+
+    /// <summary>重要度の表示名。画面・フィルターの選択肢・エクスポートで共通に使う。</summary>
+    public static string GetSeverityDisplay(LeftoverSeverity severity) => severity switch
     {
         LeftoverSeverity.Review => "要確認",
         LeftoverSeverity.Caution => "注意",

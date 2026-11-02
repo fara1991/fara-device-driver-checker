@@ -92,7 +92,13 @@ public class MainViewModel : INotifyPropertyChanged
 
     public ICollectionView LeftoverView => _leftoverView ??= CreateLeftoverView();
 
-    public string[] SeverityOptions { get; } = [FilterAll, "要確認", "注意", "情報"];
+    public string[] SeverityOptions { get; } =
+    [
+        FilterAll,
+        LeftoverItem.GetSeverityDisplay(LeftoverSeverity.Review),
+        LeftoverItem.GetSeverityDisplay(LeftoverSeverity.Caution),
+        LeftoverItem.GetSeverityDisplay(LeftoverSeverity.Info)
+    ];
     public ObservableCollection<string> CategoryOptions { get; } = [FilterAll];
 
     public string FilterText

@@ -63,11 +63,13 @@ public class LeftoverScanner
 
     private readonly List<LeftoverItem> _items = [];
     private bool _userDataDenied;
+    private int _unreadablePaths;
 
     public LeftoverScanResult Scan()
     {
         _items.Clear();
         _userDataDenied = false;
+        _unreadablePaths = 0;
 
         var entries = Guarded("Uninstall情報の読み取り", ReadUninstallEntries) ?? [];
         var packages = Guarded("pnputil /enum-drivers", LoadDriverPackages);
@@ -82,6 +84,13 @@ public class LeftoverScanner
         Guarded("プログラムフォルダー", () => CheckProgramFolders(entries));
         Guarded("旧版ドライバーの重複", () => CheckDuplicateDrivers(packages));
         Guarded("問題のあるデバイス", CheckProblemDevices);
+
+        if (_unreadablePaths > 0)
+        {
+            Add(CatInfo, LeftoverSeverity.Info, $"読み取れないフォルダーが{_unreadablePaths}件あります",
+                "Program Files / Package Cache",
+                "アクセスが拒否されたか、読み取り中にエラーが発生したため、確認できませんでした。");
+        }
 
         if (_userDataDenied)
         {
@@ -138,6 +147,13 @@ public class LeftoverScanner
 
     private static string? ReadString(RegistryKey key, string name)
         => key.GetValue(name) as string;
+
+    private static RegistryKey OpenHklm64()
+        => RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
+
+    /// <summary>読めなかった場合に、結果から除外して続行してよい種類の例外か。</summary>
+    private static bool IsAccessProblem(Exception ex)
+        => ex is IOException or UnauthorizedAccessException or SecurityException;
 
     // ---- 案内コマンドの生成 ----
     // 引用符の外へ抜け出せる値（キー名やフォルダー名に " や ' を含む場合など）は、コマンドを空にして案内しない。
@@ -235,7 +251,7 @@ public class LeftoverScanner
 
     private static bool ProductRegistered(string packedGuid)
     {
-        using var hklm = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
+        using var hklm = OpenHklm64();
         using var key = hklm.OpenSubKey($@"{InstallerProductsPath}\{packedGuid}");
         return key != null;
     }
@@ -244,7 +260,7 @@ public class LeftoverScanner
 
     private void CheckInstallerRegistrations(List<UninstallEntry> entries, HashSet<string>? storeInfNames)
     {
-        using var hklm = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
+        using var hklm = OpenHklm64();
         var uninstallGuids = entries.Where(e => e.View != "HKCU")
             .Select(e => e.KeyName.ToUpperInvariant()).ToHashSet();
 
@@ -435,7 +451,7 @@ public class LeftoverScanner
     private void CheckKernelDriverServices()
     {
         var windir = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
-        using var hklm = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
+        using var hklm = OpenHklm64();
         using var services = hklm.OpenSubKey(ServicesPath);
         if (services == null) return;
 
@@ -495,7 +511,7 @@ public class LeftoverScanner
         var root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Package Cache");
         if (!Directory.Exists(root)) return;
 
-        using var hklm = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
+        using var hklm = OpenHklm64();
         var registered = entries.Select(e => e.KeyName.ToUpperInvariant()).ToHashSet();
 
         foreach (var dir in Directory.GetDirectories(root))
@@ -529,7 +545,7 @@ public class LeftoverScanner
             Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)
         }.Where(r => !string.IsNullOrEmpty(r)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
-        using var hklm = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
+        using var hklm = OpenHklm64();
         var productNames = new List<string>(entries.Select(e => e.DisplayName));
         using (var products = hklm.OpenSubKey(InstallerProductsPath))
         {
@@ -567,25 +583,43 @@ public class LeftoverScanner
         }
     }
 
-    private static IEnumerable<string> SafeDirectories(string path)
+    private IEnumerable<string> SafeDirectories(string path)
     {
-        try { return Directory.GetDirectories(path); }
-        catch { return []; }
+        try
+        {
+            return Directory.GetDirectories(path);
+        }
+        catch (Exception ex) when (IsAccessProblem(ex))
+        {
+            _unreadablePaths++;
+            return [];
+        }
     }
 
-    private static bool SafeHasAnyFile(string path)
+    private bool SafeHasAnyFile(string path)
     {
-        try { return Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories).Any(); }
-        catch { return true; } // 読めないフォルダーは空と判断しない
+        try
+        {
+            return Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories).Any();
+        }
+        catch (Exception ex) when (IsAccessProblem(ex))
+        {
+            _unreadablePaths++;
+            return true; // 読めないフォルダーは空と判断しない
+        }
     }
 
-    private static long DirectorySize(string path)
+    private long DirectorySize(string path)
     {
         try
         {
             return Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories).Sum(f => new FileInfo(f).Length);
         }
-        catch { return 0; }
+        catch (Exception ex) when (IsAccessProblem(ex))
+        {
+            _unreadablePaths++;
+            return 0;
+        }
     }
 
     private static string FormatSize(long bytes)
@@ -627,7 +661,7 @@ public class LeftoverScanner
                 if (m.Success) names.Add(m.Groups[1].Value);
             }
         }
-        catch
+        catch (Exception ex) when (IsAccessProblem(ex))
         {
             if (packages == null) return null;
         }
