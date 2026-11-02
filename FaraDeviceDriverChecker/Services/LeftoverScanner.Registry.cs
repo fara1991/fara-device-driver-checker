@@ -1,11 +1,8 @@
 namespace FaraDeviceDriverChecker.Services;
 
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.Management;
 using System.Security;
-using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Win32;
