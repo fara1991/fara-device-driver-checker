@@ -1,6 +1,6 @@
 ﻿# FaraDeviceDriverChecker
 
-Windowsのデバイスドライバーの状態を診断し、必要に応じてWindows Updateを通じて更新をサポートするGUIツールです。
+Windowsのデバイスドライバーの状態を診断し、アンインストール後に残った登録・フォルダー・サービス（残骸）を検出するGUIツールです。必要に応じて、Windows Updateを通じたドライバーの更新もサポートします。
 
 ## 技術スタック
 
@@ -20,10 +20,10 @@ Windowsのデバイスドライバーの状態を診断し、必要に応じてW
   - キーボード・マウス
   - カメラ
 - **デバイス状態の可視化**: デバイスマネージャーのステータスに基づき、「正常」と「問題あり」の状態を、アイコンの形と色で分かりやすく表示します。
-- **ドライバー更新**: Windows Update APIを利用して、ドライバー更新プログラムをインストール。
-- **Windows Update連携**: アプリケーション内から直接Windows Updateの設定を開いたり、更新を試行したりすることが可能。
-- **アンインストール漏れ（残骸）チェック**: アンインストールできない原因になる残骸を検出（読み取り専用）。詳細は下記。
-- **エクスポート**: 診断結果をテキスト / JSONで保存。
+- **ドライバー更新**: Windows Update APIを利用して、ドライバー更新プログラムをインストールできます。
+- **Windows Update連携**: アプリケーション内から直接Windows Updateの設定を開いたり、更新を試行したりできます。
+- **アンインストール漏れ（残骸）チェック**: アンインストールできない原因になる残骸を検出します（読み取り専用）。詳細は下記を参照してください。
+- **エクスポート**: 診断結果をテキスト / JSONで保存できます。
 
 ## アンインストール漏れ（残骸）チェック
 
@@ -92,7 +92,7 @@ Intel Rapid Storage Technologyが、ドライバーストアに無い `iaAHCIC.i
 
 - **OS**: Windows 10以降 (64bit)
 - **ランタイム**: 不要（リリース版は単一実行ファイルとして配布）
-- **権限**: ドライバー更新を実行する場合は、管理者権限が必要です
+- **権限**: ドライバー更新を実行する場合は、管理者権限が必要です。残骸チェックは管理者権限なしでも使えますが、一部のレジストリは管理者権限がないと確認できません
 
 ## トラブルシューティング
 
@@ -110,7 +110,7 @@ Intel Rapid Storage Technologyが、ドライバーストアに無い `iaAHCIC.i
 
 ## 注意事項
 
-- このツールはデバイスの状態を確認し、標準的なWindows Updateの機能を呼び出すものです。
+- このツールは、デバイスの状態の確認と、アンインストールの残骸の検出（どちらも読み取り専用）に加えて、標準的なWindows Updateの機能を呼び出すものです。
 - 診断結果に基づいてドライバーを更新する際は、事前にシステムの復元ポイントを作成することを推奨します。
 - 企業環境では、IT管理者に相談してからドライバー更新を行ってください。
 
@@ -123,7 +123,8 @@ FaraDeviceDriverChecker/
 │   ├── DeviceCategory.cs    # デバイスカテゴリ定義
 │   └── LeftoverItem.cs      # 残骸チェックの検出項目
 ├── ViewModels/
-│   └── MainViewModel.cs     # メインビューモデル (MVVM)
+│   ├── MainViewModel.cs     # メインビューモデル (MVVM)
+│   └── RelayCommand.cs      # ICommandの実装
 ├── Services/
 │   ├── DeviceService.cs     # デバイス情報取得・更新サービス
 │   ├── LeftoverScanner.cs   # 残骸チェック（読み取り専用）。検出の分類ごとにLeftoverScanner.*.csへ分割
@@ -170,7 +171,7 @@ dotnet restore
 # デバッグビルド
 dotnet build
 
-# リリースビルド (単一実行ファイル)
+# リリースビルド（単一実行ファイル）
 dotnet publish FaraDeviceDriverChecker/FaraDeviceDriverChecker.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o ./publish
 ```
 

@@ -23,6 +23,11 @@
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
 
+        <!-- 列見出しの文字色を濃くして、コントラストを 4.5:1 以上にする -->
+        <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource MaterialDesignDataGridColumnHeader}">
+            <Setter Property="Foreground" Value="#595959" />
+        </Style>
+
         <!-- 長い文字列は省略記号で切り、全文をToolTipで見られるようにする -->
         <Style x:Key="CellEllipsis" TargetType="TextBlock">
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
@@ -56,14 +61,14 @@
                         </StackPanel>
 
                         <StackPanel Grid.Column="1" Orientation="Horizontal">
-                            <Button Command="{Binding ExportCommand}" Margin="0,0,8,0"
+                            <Button AutomationProperties.Name="診断結果をエクスポート" Command="{Binding ExportCommand}" Margin="0,0,8,0"
                                     Style="{StaticResource MaterialDesignOutlinedButton}">
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="ContentSave" VerticalAlignment="Center" />
                                     <TextBlock Text="エクスポート" Margin="8,0,0,0" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Button>
-                            <Button Command="{Binding OpenSettingsCommand}"
+                            <Button AutomationProperties.Name="Windows Updateの設定を開く" Command="{Binding OpenSettingsCommand}"
                                     Style="{StaticResource MaterialDesignOutlinedButton}">
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Cog" VerticalAlignment="Center" />
@@ -118,7 +123,7 @@
                             </ScrollViewer>
 
                             <StackPanel Grid.Row="2" Margin="0,8,0,0">
-                                <Button Command="{Binding ScanCommand}"
+                                <Button AutomationProperties.Name="選択したカテゴリをスキャン" Command="{Binding ScanCommand}"
                                         Style="{StaticResource MaterialDesignRaisedButton}"
                                         Margin="0,0,0,8">
                                     <StackPanel Orientation="Horizontal">
@@ -126,7 +131,7 @@
                                         <TextBlock Text="スキャン" Margin="8,0,0,0" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
-                                <Button Command="{Binding RunUpdateCommand}"
+                                <Button AutomationProperties.Name="ドライバーを更新" Command="{Binding RunUpdateCommand}"
                                         Style="{StaticResource MaterialDesignRaisedDarkButton}">
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Download" VerticalAlignment="Center" />
@@ -139,7 +144,7 @@
 
                     <!-- デバイス一覧 -->
                     <materialDesign:Card Grid.Column="1" Padding="0">
-                    <DataGrid ItemsSource="{Binding Devices}"
+                    <DataGrid AutomationProperties.Name="デバイスの一覧" ItemsSource="{Binding Devices}"
                               AutoGenerateColumns="False"
                               IsReadOnly="True"
                               CanUserAddRows="False"
@@ -196,20 +201,20 @@
                         <materialDesign:Card Grid.Row="0" Padding="12" Margin="0,0,0,12">
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal">
-                                    <Button Command="{Binding ScanLeftoverCommand}"
+                                    <Button AutomationProperties.Name="残骸をチェック" Command="{Binding ScanLeftoverCommand}"
                                             Style="{StaticResource MaterialDesignRaisedButton}">
                                         <StackPanel Orientation="Horizontal">
                                             <materialDesign:PackIcon Kind="Magnify" VerticalAlignment="Center" />
                                             <TextBlock Text="残骸をチェック" Margin="8,0,0,0" VerticalAlignment="Center" />
                                         </StackPanel>
                                     </Button>
-                                    <Button Command="{Binding RestartAsAdminCommand}" Margin="12,0,0,0"
+                                    <Button AutomationProperties.Name="管理者として再起動" Command="{Binding RestartAsAdminCommand}" Margin="12,0,0,0"
                                             Style="{StaticResource MaterialDesignOutlinedButton}">
                                         <TextBlock Text="管理者として再起動" />
                                     </Button>
                                 </StackPanel>
                                 <TextBlock Text="{Binding AdminStatus}" Margin="0,8,0,0" Opacity="0.7" />
-                                <Expander Header="このチェックは読み取り専用です（詳細）" Margin="0,4,0,0" FontSize="12"
+                                <Expander AutomationProperties.Name="読み取り専用であることの詳細" Header="このチェックは読み取り専用です（詳細）" Margin="0,4,0,0" FontSize="12"
                                           Background="Transparent"
                                           materialDesign:ExpanderAssist.HorizontalHeaderPadding="0"
                                           materialDesign:ExpanderAssist.VerticalHeaderPadding="2">
@@ -217,18 +222,19 @@
                                                Text="削除などは自動で実行しません。案内コマンドは内容を確認し、管理者権限で手動実行してください。ストレージ系ドライバー（iastorvdなど）は削除対象として提案しません。" />
                                 </Expander>
                                 <WrapPanel Orientation="Horizontal" Margin="0,12,0,0">
-                                    <TextBox Width="260" VerticalAlignment="Center" Margin="0,0,12,8"
+                                    <TextBox AutomationProperties.Name="キーワードで絞り込み" Width="260" VerticalAlignment="Center" Margin="0,0,12,8"
                                              materialDesign:HintAssist.Hint="キーワードで絞り込み（空白区切りでAND）"
+                                             materialDesign:HintAssist.HintOpacity="0.85"
                                              Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}" />
-                                    <ComboBox Width="110" Margin="0,0,12,8" VerticalAlignment="Center"
+                                    <ComboBox AutomationProperties.Name="重要度で絞り込み" Width="110" Margin="0,0,12,8" VerticalAlignment="Center"
                                               materialDesign:HintAssist.Hint="重要度"
                                               ItemsSource="{Binding SeverityOptions}"
                                               SelectedItem="{Binding FilterSeverity}" />
-                                    <ComboBox Width="180" Margin="0,0,12,8" VerticalAlignment="Center"
+                                    <ComboBox AutomationProperties.Name="分類で絞り込み" Width="180" Margin="0,0,12,8" VerticalAlignment="Center"
                                               materialDesign:HintAssist.Hint="分類"
                                               ItemsSource="{Binding CategoryOptions}"
                                               SelectedItem="{Binding FilterCategory}" />
-                                    <Button Command="{Binding ClearFilterCommand}" Margin="0,0,16,8"
+                                    <Button AutomationProperties.Name="フィルターをクリア" Command="{Binding ClearFilterCommand}" Margin="0,0,16,8"
                                             Style="{StaticResource MaterialDesignOutlinedButton}">
                                         <TextBlock Text="クリア" />
                                     </Button>
@@ -239,7 +245,7 @@
 
                         <materialDesign:Card Grid.Row="1" Padding="0">
                             <Grid>
-                            <DataGrid ItemsSource="{Binding LeftoverView}"
+                            <DataGrid AutomationProperties.Name="残骸チェックの検出結果の一覧" ItemsSource="{Binding LeftoverView}"
                                       SelectedItem="{Binding SelectedLeftover}"
                                       AutoGenerateColumns="False"
                                       IsReadOnly="True"
@@ -291,7 +297,7 @@
                             </Grid>
                         </materialDesign:Card>
 
-                        <GridSplitter Grid.Row="2" Height="12" HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                        <GridSplitter AutomationProperties.Name="一覧と詳細の境界（ドラッグで高さを変更）" Grid.Row="2" Height="12" HorizontalAlignment="Stretch" VerticalAlignment="Center"
                                       ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
                                       Background="Transparent" Cursor="SizeNS"
                                       ToolTip="ドラッグして、一覧と詳細の高さを変えられます" />
@@ -329,11 +335,11 @@
                                         <StackPanel>
                                             <TextBlock Text="{Binding Detail}" TextWrapping="Wrap" />
                                             <TextBlock Text="案内コマンド（自動実行はされません）" FontWeight="Bold" Margin="0,8,0,2" />
-                                            <TextBox Text="{Binding CommandDisplay, Mode=OneWay}" IsReadOnly="True"
+                                            <TextBox AutomationProperties.Name="案内コマンド" Text="{Binding CommandDisplay, Mode=OneWay}" IsReadOnly="True"
                                                      FontFamily="Consolas" TextWrapping="Wrap" />
                                         </StackPanel>
                                     </ScrollViewer>
-                                    <Button Grid.Row="1" HorizontalAlignment="Left" Margin="0,8,0,0"
+                                    <Button AutomationProperties.Name="案内コマンドをコピー" Grid.Row="1" HorizontalAlignment="Left" Margin="0,8,0,0"
                                             Command="{Binding DataContext.CopyCommandTextCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                             Style="{StaticResource MaterialDesignOutlinedButton}">
                                         <TextBlock Text="コマンドをコピー" />
