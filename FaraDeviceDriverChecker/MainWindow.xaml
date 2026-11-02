@@ -188,8 +188,9 @@
                     <Grid Margin="0,12,0,0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" MinHeight="100" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="130" MinHeight="90" />
                         </Grid.RowDefinitions>
 
                         <materialDesign:Card Grid.Row="0" Padding="12" Margin="0,0,0,12">
@@ -208,8 +209,13 @@
                                     </Button>
                                 </StackPanel>
                                 <TextBlock Text="{Binding AdminStatus}" Margin="0,8,0,0" Opacity="0.7" />
-                                <TextBlock TextWrapping="Wrap" Margin="0,4,0,0" Opacity="0.7"
-                                           Text="このチェックは読み取り専用です。削除などは自動で実行しません。案内コマンドは内容を確認し、管理者権限で手動実行してください。ストレージ系ドライバー（iastorvdなど）は削除対象として提案しません。" />
+                                <Expander Header="このチェックは読み取り専用です（詳細）" Margin="0,4,0,0" FontSize="12"
+                                          Background="Transparent"
+                                          materialDesign:ExpanderAssist.HorizontalHeaderPadding="0"
+                                          materialDesign:ExpanderAssist.VerticalHeaderPadding="2">
+                                    <TextBlock TextWrapping="Wrap" Margin="24,4,0,4" Opacity="0.7"
+                                               Text="削除などは自動で実行しません。案内コマンドは内容を確認し、管理者権限で手動実行してください。ストレージ系ドライバー（iastorvdなど）は削除対象として提案しません。" />
+                                </Expander>
                                 <WrapPanel Orientation="Horizontal" Margin="0,12,0,0">
                                     <TextBox Width="260" VerticalAlignment="Center" Margin="0,0,12,8"
                                              materialDesign:HintAssist.Hint="キーワードで絞り込み（空白区切りでAND）"
@@ -232,6 +238,7 @@
                         </materialDesign:Card>
 
                         <materialDesign:Card Grid.Row="1" Padding="0">
+                            <Grid>
                             <DataGrid ItemsSource="{Binding LeftoverView}"
                                       SelectedItem="{Binding SelectedLeftover}"
                                       AutoGenerateColumns="False"
@@ -277,9 +284,19 @@
                                                         ElementStyle="{StaticResource CellEllipsis}" />
                                 </DataGrid.Columns>
                             </DataGrid>
+                            <TextBlock Text="{Binding LeftoverEmptyMessage}" TextWrapping="Wrap" TextAlignment="Center"
+                                       VerticalAlignment="Center" HorizontalAlignment="Center" Margin="16,32,16,0" Opacity="0.7"
+                                       IsHitTestVisible="False"
+                                       Visibility="{Binding IsLeftoverListEmpty, Converter={StaticResource BoolToVis}}" />
+                            </Grid>
                         </materialDesign:Card>
 
-                        <materialDesign:Card Grid.Row="2" Padding="12" Margin="0,12,0,0" Height="150">
+                        <GridSplitter Grid.Row="2" Height="12" HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                                      ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
+                                      Background="Transparent" Cursor="SizeNS"
+                                      ToolTip="ドラッグして、一覧と詳細の高さを変えられます" />
+
+                        <materialDesign:Card Grid.Row="3" Padding="12">
                             <Grid>
                                 <TextBlock Text="一覧の行を選ぶと、詳細と案内コマンドがここに表示されます。"
                                            VerticalAlignment="Center" HorizontalAlignment="Center" Opacity="0.7">

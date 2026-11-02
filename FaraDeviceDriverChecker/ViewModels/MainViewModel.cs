@@ -150,7 +150,15 @@ public class MainViewModel : INotifyPropertyChanged
     {
         LeftoverView.Refresh();
         OnPropertyChanged(nameof(FilterSummary));
+        OnPropertyChanged(nameof(IsLeftoverListEmpty));
+        OnPropertyChanged(nameof(LeftoverEmptyMessage));
     }
+
+    public bool IsLeftoverListEmpty => !LeftoverView.Cast<object>().Any();
+
+    public string LeftoverEmptyMessage => _leftoverResult == null
+        ? "「残骸をチェック」を押すと、検出結果がここに表示されます。"
+        : "条件に合う項目はありません。";
 
     public LeftoverItem? SelectedLeftover
     {
