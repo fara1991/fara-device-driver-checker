@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
+using System.Windows.Data;
 using System.Windows.Input;
 using Microsoft.Win32;
 using Models;
@@ -81,6 +82,76 @@ public class MainViewModel : INotifyPropertyChanged
 
     public ObservableCollection<LeftoverItem> LeftoverItems { get; } = [];
 
+    // ---- 一覧のフィルター（重要度・分類・キーワード） ----
+
+    private const string FilterAll = "すべて";
+    private ICollectionView? _leftoverView;
+    private string _filterText = "";
+    private string _filterSeverity = FilterAll;
+    private string _filterCategory = FilterAll;
+
+    public ICollectionView LeftoverView => _leftoverView ??= CreateLeftoverView();
+
+    public string[] SeverityOptions { get; } = [FilterAll, "要確認", "注意", "情報"];
+    public ObservableCollection<string> CategoryOptions { get; } = [FilterAll];
+
+    public string FilterText
+    {
+        get => _filterText;
+        set { _filterText = value; OnFilterChanged(); }
+    }
+
+    public string FilterSeverity
+    {
+        get => _filterSeverity;
+        set { _filterSeverity = value; OnFilterChanged(); }
+    }
+
+    public string FilterCategory
+    {
+        get => _filterCategory;
+        set { _filterCategory = value ?? FilterAll; OnFilterChanged(); }
+    }
+
+    public string FilterSummary => $"表示 {LeftoverView.Cast<object>().Count()} / 全 {LeftoverItems.Count} 件";
+
+    public ICommand ClearFilterCommand => new RelayCommand(() =>
+    {
+        _filterText = "";
+        _filterSeverity = FilterAll;
+        _filterCategory = FilterAll;
+        OnPropertyChanged(nameof(FilterText));
+        OnPropertyChanged(nameof(FilterSeverity));
+        OnPropertyChanged(nameof(FilterCategory));
+        OnFilterChanged();
+    });
+
+    private ICollectionView CreateLeftoverView()
+    {
+        var view = CollectionViewSource.GetDefaultView(LeftoverItems);
+        view.Filter = o => o is LeftoverItem item && MatchesFilter(item);
+        return view;
+    }
+
+    private bool MatchesFilter(LeftoverItem item)
+    {
+        if (_filterSeverity != FilterAll && item.SeverityDisplay != _filterSeverity) return false;
+        if (_filterCategory != FilterAll && item.Category != _filterCategory) return false;
+        if (string.IsNullOrWhiteSpace(_filterText)) return true;
+
+        return _filterText.Split([' ', '　'], StringSplitOptions.RemoveEmptyEntries).All(word =>
+            item.Title.Contains(word, StringComparison.OrdinalIgnoreCase) ||
+            item.Target.Contains(word, StringComparison.OrdinalIgnoreCase) ||
+            item.Detail.Contains(word, StringComparison.OrdinalIgnoreCase) ||
+            item.Category.Contains(word, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void OnFilterChanged()
+    {
+        LeftoverView.Refresh();
+        OnPropertyChanged(nameof(FilterSummary));
+    }
+
     public LeftoverItem? SelectedLeftover
     {
         get => _selectedLeftover;
@@ -114,6 +185,14 @@ public class MainViewModel : INotifyPropertyChanged
             var result = await Task.Run(() => _leftoverScanner.Scan());
             _leftoverResult = result;
             foreach (var item in result.Items) LeftoverItems.Add(item);
+
+            var selectedCategory = _filterCategory;
+            CategoryOptions.Clear();
+            CategoryOptions.Add(FilterAll);
+            foreach (var category in result.Items.Select(i => i.Category).Distinct().Order()) CategoryOptions.Add(category);
+            if (!CategoryOptions.Contains(selectedCategory)) _filterCategory = FilterAll;
+            OnPropertyChanged(nameof(FilterCategory));
+            OnFilterChanged();
 
             var review = result.Items.Count(i => i.Severity == LeftoverSeverity.Review);
             StatusMessage = $"残骸チェック完了: {result.Items.Count}件（要確認 {review}件）";

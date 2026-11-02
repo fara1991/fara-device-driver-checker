@@ -227,11 +227,29 @@
                                 <TextBlock Text="{Binding AdminStatus}" Margin="0,8,0,0" Opacity="0.7" />
                                 <TextBlock TextWrapping="Wrap" Margin="0,4,0,0" Opacity="0.7"
                                            Text="このチェックは読み取り専用です。削除などは自動で実行しません。案内コマンドは内容を確認し、管理者権限で手動実行してください。ストレージ系ドライバー（iastorvd 等）は削除対象として提案しません。" />
+                                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                    <TextBox Width="260" VerticalAlignment="Center"
+                                             materialDesign:HintAssist.Hint="キーワードで絞り込み（空白区切りで AND）"
+                                             Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}" />
+                                    <ComboBox Width="110" Margin="12,0,0,0" VerticalAlignment="Center"
+                                              materialDesign:HintAssist.Hint="重要度"
+                                              ItemsSource="{Binding SeverityOptions}"
+                                              SelectedItem="{Binding FilterSeverity}" />
+                                    <ComboBox Width="180" Margin="12,0,0,0" VerticalAlignment="Center"
+                                              materialDesign:HintAssist.Hint="分類"
+                                              ItemsSource="{Binding CategoryOptions}"
+                                              SelectedItem="{Binding FilterCategory}" />
+                                    <Button Command="{Binding ClearFilterCommand}" Margin="12,0,0,0"
+                                            Style="{StaticResource MaterialDesignOutlinedButton}">
+                                        <TextBlock Text="クリア" />
+                                    </Button>
+                                    <TextBlock Text="{Binding FilterSummary}" Margin="16,0,0,0" VerticalAlignment="Center" Opacity="0.7" />
+                                </StackPanel>
                             </StackPanel>
                         </materialDesign:Card>
 
                         <materialDesign:Card Grid.Row="1" Padding="0">
-                            <DataGrid ItemsSource="{Binding LeftoverItems}"
+                            <DataGrid ItemsSource="{Binding LeftoverView}"
                                       SelectedItem="{Binding SelectedLeftover}"
                                       AutoGenerateColumns="False"
                                       IsReadOnly="True"
