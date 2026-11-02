@@ -19,6 +19,18 @@ public class MainViewModel : INotifyPropertyChanged
     private bool _hasScanned;
     private string _statusMessage = "デバイスカテゴリを選択してスキャンしてください";
 
+    public MainViewModel()
+    {
+        ScanCommand = new RelayCommand(async () => await ScanDevicesAsync(), () => IsNotLoading && HasSelectedCategories);
+        RunUpdateCommand = new RelayCommand(async () => await RunUpdateAsync(), () => IsNotLoading && HasScanned);
+        OpenSettingsCommand = new RelayCommand(() => _deviceService.OpenWindowsUpdateSettings());
+        ClearFilterCommand = new RelayCommand(ClearFilter);
+        ScanLeftoverCommand = new RelayCommand(async () => await ScanLeftoverAsync(), () => IsNotLoading);
+        ExportCommand = new RelayCommand(ExportReport, () => IsNotLoading && (HasScanned || _leftoverResult != null));
+        CopyCommandTextCommand = new RelayCommand(CopySuggestedCommand, () => SelectedLeftover is { IsProtected: false, SuggestedCommand.Length: > 0 });
+        RestartAsAdminCommand = new RelayCommand(RestartAsAdmin, () => IsNotLoading && !IsAdministrator);
+    }
+
     public ObservableCollection<DeviceCategory> Categories { get; } = new(DeviceCategory.GetAll());
     public ObservableCollection<DeviceInfo> Devices { get; } = [];
 
@@ -70,9 +82,9 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    public ICommand ScanCommand => new RelayCommand(async () => await ScanDevicesAsync(), () => IsNotLoading && HasSelectedCategories);
-    public ICommand RunUpdateCommand => new RelayCommand(async () => await RunUpdateAsync(), () => IsNotLoading && HasScanned);
-    public ICommand OpenSettingsCommand => new RelayCommand(() => _deviceService.OpenWindowsUpdateSettings());
+    public ICommand ScanCommand { get; }
+    public ICommand RunUpdateCommand { get; }
+    public ICommand OpenSettingsCommand { get; }
 
     // ---- 残骸チェック（読み取り専用。削除などは実行せず、案内コマンドの表示まで） ----
 
@@ -121,7 +133,9 @@ public class MainViewModel : INotifyPropertyChanged
 
     public string FilterSummary => $"表示 {LeftoverView.Cast<object>().Count()} / 全 {LeftoverItems.Count}件";
 
-    public ICommand ClearFilterCommand => new RelayCommand(() =>
+    public ICommand ClearFilterCommand { get; }
+
+    private void ClearFilter()
     {
         _filterText = "";
         _filterSeverity = FilterAll;
@@ -130,7 +144,7 @@ public class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(FilterSeverity));
         OnPropertyChanged(nameof(FilterCategory));
         OnFilterChanged();
-    });
+    }
 
     private ICollectionView CreateLeftoverView()
     {
@@ -182,10 +196,10 @@ public class MainViewModel : INotifyPropertyChanged
         ? "管理者権限: あり（このアプリは検出のみで変更は行いません）"
         : "管理者権限: なし（一部の登録は確認できません。必要なら管理者として起動し直してください）";
 
-    public ICommand ScanLeftoverCommand => new RelayCommand(async () => await ScanLeftoverAsync(), () => IsNotLoading);
-    public ICommand ExportCommand => new RelayCommand(ExportReport, () => IsNotLoading && (HasScanned || _leftoverResult != null));
-    public ICommand CopyCommandTextCommand => new RelayCommand(CopySuggestedCommand, () => SelectedLeftover is { IsProtected: false, SuggestedCommand.Length: > 0 });
-    public ICommand RestartAsAdminCommand => new RelayCommand(RestartAsAdmin, () => IsNotLoading && !IsAdministrator);
+    public ICommand ScanLeftoverCommand { get; }
+    public ICommand ExportCommand { get; }
+    public ICommand CopyCommandTextCommand { get; }
+    public ICommand RestartAsAdminCommand { get; }
 
     private async Task ScanLeftoverAsync()
     {

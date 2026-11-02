@@ -32,6 +32,21 @@ public class LeftoverScanner
     private const string ServicesPath = @"SYSTEM\CurrentControlSet\Services";
     private const string UserDataProductsPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\UserData\S-1-5-18\Products";
 
+    /// <summary>読み取るレジストリの値名。</summary>
+    private static class RegValue
+    {
+        public const string DisplayName = "DisplayName";
+        public const string UninstallString = "UninstallString";
+        public const string InstallLocation = "InstallLocation";
+        public const string BundleCachePath = "BundleCachePath";
+        public const string WindowsInstaller = "WindowsInstaller";
+        public const string ProductName = "ProductName";
+        public const string LocalPackage = "LocalPackage";
+        public const string Type = "Type";
+        public const string Start = "Start";
+        public const string ImagePath = "ImagePath";
+    }
+
     // サービスのType（レジストリ値）
     private const int ServiceTypeNone = 0;
     private const int ServiceTypeKernelDriver = 1;
@@ -77,12 +92,13 @@ public class LeftoverScanner
 
         Guarded("Uninstall情報の整合性", () => CheckUninstallEntries(entries));
         Guarded("Installer\\Products / UserData", () => CheckInstallerRegistrations(entries, storeInfNames));
-        Guarded("デバイスが参照するINF", CheckDeviceInfReferences);
+        var signedDrivers = Guarded("署名済みドライバーの情報", LoadSignedDrivers);
+        Guarded("デバイスが参照するINF", () => CheckDeviceInfReferences(signedDrivers));
         Guarded("サービス", CheckServices);
         Guarded("カーネルドライバーのサービス登録", CheckKernelDriverServices);
         Guarded("Package Cache", () => CheckPackageCache(entries));
         Guarded("プログラムフォルダー", () => CheckProgramFolders(entries));
-        Guarded("旧版ドライバーの重複", () => CheckDuplicateDrivers(packages));
+        Guarded("旧版ドライバーの重複", () => CheckDuplicateDrivers(packages, signedDrivers));
         Guarded("問題のあるデバイス", CheckProblemDevices);
 
         if (_unreadablePaths > 0)
@@ -208,11 +224,11 @@ public class LeftoverScanner
                 if (key == null) continue;
                 list.Add(new UninstallEntry(
                     label, name, $@"{display}\{name}",
-                    ReadString(key, "DisplayName") ?? "",
-                    ReadString(key, "UninstallString") ?? "",
-                    ReadString(key, "InstallLocation") ?? "",
-                    ReadString(key, "BundleCachePath") ?? "",
-                    (key.GetValue("WindowsInstaller") as int? ?? 0) == 1));
+                    ReadString(key, RegValue.DisplayName) ?? "",
+                    ReadString(key, RegValue.UninstallString) ?? "",
+                    ReadString(key, RegValue.InstallLocation) ?? "",
+                    ReadString(key, RegValue.BundleCachePath) ?? "",
+                    (key.GetValue(RegValue.WindowsInstaller) as int? ?? 0) == 1));
             }
         }
         return list;
@@ -280,7 +296,7 @@ public class LeftoverScanner
             if (guid == null) continue;
 
             using var product = products.OpenSubKey(packed);
-            var productName = product == null ? "" : ReadString(product, "ProductName") ?? "";
+            var productName = product == null ? "" : ReadString(product, RegValue.ProductName) ?? "";
             var label = productName != "" ? productName : guid;
             var productsPath = $@"HKLM\{InstallerProductsPath}\{packed}";
 
@@ -292,7 +308,7 @@ public class LeftoverScanner
                 if (props != null)
                 {
                     userDataKnown = true;
-                    localPackage = ReadString(props, "LocalPackage");
+                    localPackage = ReadString(props, RegValue.LocalPackage);
                 }
             }
             catch (Exception ex) when (ex is UnauthorizedAccessException or SecurityException)
@@ -338,7 +354,7 @@ public class LeftoverScanner
                 if (productPacked.Contains(packed) || MsiGuid.Unpack(packed) is not { } guid) continue;
 
                 using var props = userData.OpenSubKey($@"{packed}\InstallProperties");
-                var name = props == null ? "" : ReadString(props, "DisplayName") ?? "";
+                var name = props == null ? "" : ReadString(props, RegValue.DisplayName) ?? "";
                 var userDataPath = $@"HKLM\{UserDataProductsPath}\{packed}";
                 Add(CatRegistry, LeftoverSeverity.Caution,
                     $"Installer\\UserDataにだけ残る登録: {(name != "" ? name : guid)}", userDataPath,
@@ -386,22 +402,35 @@ public class LeftoverScanner
 
     // ---- デバイスが参照するINF ----
 
-    private void CheckDeviceInfReferences()
+    /// <summary>デバイスに割り当てられた署名済みドライバー（WMI の Win32_PnPSignedDriver）。</summary>
+    private record SignedDriver(string DeviceName, string DeviceId, string InfName);
+
+    private static List<SignedDriver> LoadSignedDrivers()
     {
-        var infDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "INF");
         using var searcher = new ManagementObjectSearcher(
             "SELECT DeviceName, DeviceID, InfName FROM Win32_PnPSignedDriver WHERE InfName IS NOT NULL");
-        foreach (var o in searcher.Get())
-        {
-            var inf = o["InfName"]?.ToString();
-            if (inf == null || !Regex.IsMatch(inf, @"^oem\d+\.inf$", RegexOptions.IgnoreCase)) continue;
-            if (File.Exists(Path.Combine(infDir, inf))) continue;
+        return searcher.Get().Cast<ManagementBaseObject>()
+            .Select(o => new SignedDriver(
+                o["DeviceName"]?.ToString() ?? "", o["DeviceID"]?.ToString() ?? "", o["InfName"]?.ToString() ?? ""))
+            .Where(d => d.InfName != "")
+            .ToList();
+    }
 
-            var name = o["DeviceName"]?.ToString() ?? "(名前なし)";
+    private void CheckDeviceInfReferences(List<SignedDriver>? drivers)
+    {
+        if (drivers == null) return;
+
+        var infDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "INF");
+        foreach (var d in drivers)
+        {
+            if (!Regex.IsMatch(d.InfName, @"^oem\d+\.inf$", RegexOptions.IgnoreCase)) continue;
+            if (File.Exists(Path.Combine(infDir, d.InfName))) continue;
+
+            var name = d.DeviceName != "" ? d.DeviceName : "(名前なし)";
             Add(CatDriverRef, LeftoverSeverity.Review,
-                $"デバイスが存在しないINFを参照しています: {name}", o["DeviceID"]?.ToString() ?? "",
-                $"{inf}が {infDir}にありません。ドライバーの再インストールが必要な可能性があります。",
-                GetPnpDeviceCommand(o["DeviceID"]?.ToString()), StorageGuard.IsStorageName(inf));
+                $"デバイスが存在しないINFを参照しています: {name}", d.DeviceId,
+                $"{d.InfName}が{infDir}にありません。ドライバーの再インストールが必要な可能性があります。",
+                GetPnpDeviceCommand(d.DeviceId), StorageGuard.IsStorageName(d.InfName));
         }
     }
 
@@ -487,14 +516,14 @@ public class LeftoverScanner
         using var key = services.OpenSubKey(name);
         if (key == null) return;
 
-        var type = key.GetValue("Type") as int? ?? ServiceTypeNone;
+        var type = key.GetValue(RegValue.Type) as int? ?? ServiceTypeNone;
         if (type is not (ServiceTypeKernelDriver or ServiceTypeFileSystemDriver)) return;
 
         // 無効のものは影響が無いので対象外
-        var start = key.GetValue("Start") as int? ?? StartDisabled;
+        var start = key.GetValue(RegValue.Start) as int? ?? StartDisabled;
         if (start >= StartDisabled) return;
 
-        var image = PathResolver.ResolveDriverImagePath(ReadString(key, "ImagePath"), name, windir);
+        var image = PathResolver.ResolveDriverImagePath(ReadString(key, RegValue.ImagePath), name, windir);
         if (File.Exists(image)) return;
 
         var isStorage = StorageGuard.IsStorageName(name) || StorageGuard.IsStorageName(Path.GetFileName(image));
@@ -557,7 +586,7 @@ public class LeftoverScanner
             foreach (var packed in products?.GetSubKeyNames() ?? [])
             {
                 using var p = products!.OpenSubKey(packed);
-                if (p != null) productNames.Add(ReadString(p, "ProductName") ?? "");
+                if (p != null) productNames.Add(ReadString(p, RegValue.ProductName) ?? "");
             }
         }
 
@@ -674,18 +703,11 @@ public class LeftoverScanner
         return names.Count == 0 ? null : names;
     }
 
-    private void CheckDuplicateDrivers(List<DriverPackage>? packages)
+    private void CheckDuplicateDrivers(List<DriverPackage>? packages, List<SignedDriver>? drivers)
     {
-        if (packages == null) return;
+        if (packages == null || drivers == null) return;
 
-        var inUse = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        using (var searcher = new ManagementObjectSearcher("SELECT InfName FROM Win32_PnPSignedDriver WHERE InfName IS NOT NULL"))
-        {
-            foreach (var o in searcher.Get())
-            {
-                if (o["InfName"]?.ToString() is { } inf) inUse.Add(inf);
-            }
-        }
+        var inUse = drivers.Select(d => d.InfName).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var groups = packages
             .Where(p => p.OriginalName != "")
