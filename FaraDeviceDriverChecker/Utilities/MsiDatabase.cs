@@ -8,6 +8,7 @@ public sealed class MsiDatabase : IDisposable
 {
     private const int MsiDbOpenReadOnly = 0;
     private const int ErrorNoMoreItems = 259;
+    private const int ErrorMoreData = 234;
 
     private IntPtr _handle;
 
@@ -21,7 +22,7 @@ public sealed class MsiDatabase : IDisposable
             // persistに0 (MSIDBOPEN_READONLY) を渡す。文字列ポインター版ではなく整数版を使う
             return MsiOpenDatabaseW(path, new IntPtr(MsiDbOpenReadOnly), out var h) == 0 ? new MsiDatabase(h) : null;
         }
-        catch
+        catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
         {
             return null;
         }
@@ -44,7 +45,15 @@ public sealed class MsiDatabase : IDisposable
                 {
                     var size = 512;
                     var sb = new StringBuilder(size);
-                    if (MsiRecordGetStringW(record, 1, sb, ref size) == 0)
+                    var result = MsiRecordGetStringW(record, 1, sb, ref size);
+                    if (result == ErrorMoreData)
+                    {
+                        // バッファーが足りないときは、size に必要な文字数が入って返る。大きくして読み直す
+                        sb = new StringBuilder(size + 1);
+                        size = sb.Capacity;
+                        result = MsiRecordGetStringW(record, 1, sb, ref size);
+                    }
+                    if (result == 0)
                         rows.Add(sb.ToString());
                 }
                 finally

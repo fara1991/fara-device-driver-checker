@@ -149,6 +149,14 @@ public class LogicTests
     public void 単一引用符の中に埋め込んでよい値だけを許可する(string? value, bool expected)
         => Assert.Equal(expected, CommandGuard.IsSafeInSingleQuotes(value));
 
+    [Theory]
+    [InlineData("1.2.76.0", "v1.2.76.0")]
+    [InlineData("不明", "不明")]
+    [InlineData("取得不可", "取得不可")]
+    [InlineData("", "")]
+    public void バージョンの表示は_数字で始まるときだけ_v_を付ける(string version, string expected)
+        => Assert.Equal(expected, ReportExporter.FormatVersion(version));
+
     [Fact]
     public void 重要度の表示名は全ての値で重複しない()
     {

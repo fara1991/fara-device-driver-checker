@@ -27,7 +27,7 @@ public static class ReportExporter
             sb.AppendLine($"■ ドライバー診断（{devices.Count}件 / 問題 {devices.Count(d => d.HasProblem)}件）");
             foreach (var d in devices)
             {
-                sb.AppendLine($"- [{d.StatusDisplay}] {d.Name} | {d.Manufacturer} | {d.Class} | v{d.DriverVersion} | {d.DriverDate}");
+                sb.AppendLine($"- [{d.StatusDisplay}] {d.Name} | {d.Manufacturer} | {d.Class} | {FormatVersion(d.DriverVersion)} | {d.DriverDate}");
                 sb.AppendLine($"    DeviceID: {d.DeviceId}");
             }
             sb.AppendLine();
@@ -60,6 +60,10 @@ public static class ReportExporter
 
         return sb.ToString();
     }
+
+    /// <summary>数字で始まる版だけに「v」を付ける（「不明」などに付けて「v不明」にならないようにする）。</summary>
+    public static string FormatVersion(string version)
+        => version.Length > 0 && char.IsDigit(version[0]) ? $"v{version}" : version;
 
     public static string ToJson(IReadOnlyList<DeviceInfo> devices, LeftoverScanResult? leftover)
     {

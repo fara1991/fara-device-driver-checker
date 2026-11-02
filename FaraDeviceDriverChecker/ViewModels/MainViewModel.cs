@@ -3,6 +3,7 @@ namespace FaraDeviceDriverChecker.ViewModels;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
@@ -264,8 +265,16 @@ public class MainViewModel : INotifyPropertyChanged
     private void CopySuggestedCommand()
     {
         if (SelectedLeftover is not { IsProtected: false } item || item.SuggestedCommand == "") return;
-        Clipboard.SetText(item.SuggestedCommand);
-        StatusMessage = "コマンドをクリップボードにコピーしました（自動では実行されません。内容を確認して手動で実行してください）";
+        try
+        {
+            Clipboard.SetText(item.SuggestedCommand);
+            StatusMessage = "コマンドをクリップボードにコピーしました（自動では実行されません。内容を確認して手動で実行してください）";
+        }
+        catch (COMException ex)
+        {
+            // 他のアプリがクリップボードを使用中のときなど
+            StatusMessage = $"クリップボードにコピーできませんでした。少し待ってから、もう一度お試しください（詳細: {ex.Message}）";
+        }
     }
 
     private void RestartAsAdmin()
