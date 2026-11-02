@@ -20,6 +20,18 @@
         <vm:MainViewModel />
     </Window.DataContext>
 
+    <Window.InputBindings>
+        <KeyBinding Key="E" Modifiers="Ctrl" Command="{Binding ExportCommand}" />
+        <KeyBinding Key="F5" Command="{Binding RescanCommand}" />
+        <KeyBinding Key="D1" Modifiers="Ctrl" Command="{Binding ShowDriversTabCommand}" />
+        <KeyBinding Key="D2" Modifiers="Ctrl" Command="{Binding ShowLeftoverTabCommand}" />
+        <KeyBinding Key="C" Modifiers="Ctrl+Shift" Command="{Binding CopyCommandTextCommand}" />
+    </Window.InputBindings>
+
+    <Window.CommandBindings>
+        <CommandBinding Command="ApplicationCommands.Find" Executed="FindExecuted" />
+    </Window.CommandBindings>
+
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
 
@@ -44,44 +56,68 @@
     </Window.Resources>
 
     <materialDesign:DialogHost>
+        <DockPanel>
+        <Menu DockPanel.Dock="Top" Padding="4,0">
+            <MenuItem Header="ファイル(_F)">
+                <MenuItem Header="エクスポート(_E)…" Command="{Binding ExportCommand}" InputGestureText="Ctrl+E">
+                    <MenuItem.Icon><materialDesign:PackIcon Kind="ContentSave" /></MenuItem.Icon>
+                </MenuItem>
+                <Separator />
+                <MenuItem Header="終了(_X)" Command="{Binding ExitCommand}" InputGestureText="Alt+F4" />
+            </MenuItem>
+
+            <MenuItem Header="編集(_E)">
+                <MenuItem Header="案内コマンドをコピー(_C)" Command="{Binding CopyCommandTextCommand}" InputGestureText="Ctrl+Shift+C">
+                    <MenuItem.Icon><materialDesign:PackIcon Kind="ContentCopy" /></MenuItem.Icon>
+                </MenuItem>
+                <Separator />
+                <MenuItem Header="キーワードで絞り込み(_F)" Command="ApplicationCommands.Find" InputGestureText="Ctrl+F">
+                    <MenuItem.Icon><materialDesign:PackIcon Kind="Magnify" /></MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
+
+            <MenuItem Header="表示(_V)">
+                <MenuItem Header="ドライバー診断(_1)" Command="{Binding ShowDriversTabCommand}" InputGestureText="Ctrl+1" />
+                <MenuItem Header="アンインストール漏れチェック(_2)" Command="{Binding ShowLeftoverTabCommand}" InputGestureText="Ctrl+2" />
+                <Separator />
+                <MenuItem Header="フィルターをクリア(_L)" Command="{Binding ClearFilterCommand}" />
+            </MenuItem>
+
+            <MenuItem Header="ツール(_T)">
+                <MenuItem Header="表示中のタブを再スキャン(_R)" Command="{Binding RescanCommand}" InputGestureText="F5">
+                    <MenuItem.Icon><materialDesign:PackIcon Kind="Refresh" /></MenuItem.Icon>
+                </MenuItem>
+                <Separator />
+                <MenuItem Header="選択したカテゴリをスキャン(_S)" Command="{Binding ScanCommand}" />
+                <MenuItem Header="残骸をチェック(_C)" Command="{Binding ScanLeftoverCommand}" />
+                <Separator />
+                <MenuItem Header="ドライバーを更新(_U)" Command="{Binding RunUpdateCommand}">
+                    <MenuItem.Icon><materialDesign:PackIcon Kind="Download" /></MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Windows Updateの設定を開く(_W)" Command="{Binding OpenSettingsCommand}">
+                    <MenuItem.Icon><materialDesign:PackIcon Kind="Cog" /></MenuItem.Icon>
+                </MenuItem>
+                <Separator />
+                <MenuItem Header="管理者として再起動(_A)" Command="{Binding RestartAsAdminCommand}" />
+            </MenuItem>
+
+            <MenuItem Header="ヘルプ(_H)">
+                <MenuItem Header="GitHubのリポジトリを開く(_G)" Command="{Binding OpenRepositoryCommand}" />
+                <MenuItem Header="問題を報告する(_I)" Command="{Binding OpenIssuesCommand}" />
+                <Separator />
+                <MenuItem Header="バージョン情報(_V)…" Command="{Binding ShowAboutCommand}" />
+            </MenuItem>
+        </Menu>
         <Grid>
             <!-- メインコンテンツ -->
             <Grid Margin="16">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <!-- ヘッダー -->
-                <Grid Grid.Row="0" Margin="0,0,0,8">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-
-                        <StackPanel Grid.Column="1" Orientation="Horizontal">
-                            <Button AutomationProperties.Name="診断結果をエクスポート" Command="{Binding ExportCommand}" Margin="0,0,8,0"
-                                    Style="{StaticResource MaterialDesignOutlinedButton}">
-                                <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="ContentSave" VerticalAlignment="Center" />
-                                    <TextBlock Text="エクスポート" Margin="8,0,0,0" VerticalAlignment="Center" />
-                                </StackPanel>
-                            </Button>
-                            <Button AutomationProperties.Name="Windows Updateの設定を開く" Command="{Binding OpenSettingsCommand}"
-                                    Style="{StaticResource MaterialDesignOutlinedButton}">
-                                <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="Cog" VerticalAlignment="Center" />
-                                    <TextBlock Text="Windows Updateの設定を開く" Margin="8,0,0,0" VerticalAlignment="Center" />
-                                </StackPanel>
-                            </Button>
-                        </StackPanel>
-                    </Grid>
-                </Grid>
-
                 <!-- メインエリア -->
-                <TabControl Grid.Row="1">
+                <TabControl Grid.Row="0" SelectedIndex="{Binding SelectedTabIndex}">
                 <TabItem Header="ドライバー診断">
                 <Grid Margin="0,12,0,0">
                     <Grid.ColumnDefinitions>
@@ -221,7 +257,7 @@
                                                Text="削除などは自動で実行しません。案内コマンドは内容を確認し、管理者権限で手動実行してください。ストレージ系ドライバー（iastorvdなど）は削除対象として提案しません。" />
                                 </Expander>
                                 <WrapPanel Orientation="Horizontal" Margin="0,12,0,0">
-                                    <TextBox AutomationProperties.Name="キーワードで絞り込み" Width="260" VerticalAlignment="Center" Margin="0,0,12,8"
+                                    <TextBox x:Name="FilterTextBox" AutomationProperties.Name="キーワードで絞り込み" Width="260" VerticalAlignment="Center" Margin="0,0,12,8"
                                              materialDesign:HintAssist.Hint="キーワードで絞り込み（空白区切りでAND）"
                                              materialDesign:HintAssist.HintOpacity="0.85"
                                              Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}" />
@@ -419,7 +455,7 @@
                 </TabControl>
 
                 <!-- ステータスバー -->
-                <materialDesign:Card Grid.Row="2" Padding="12" Margin="0,16,0,0">
+                <materialDesign:Card Grid.Row="1" Padding="12" Margin="0,16,0,0">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
@@ -447,5 +483,6 @@
                 </StackPanel>
             </Grid>
         </Grid>
+        </DockPanel>
     </materialDesign:DialogHost>
 </Window>

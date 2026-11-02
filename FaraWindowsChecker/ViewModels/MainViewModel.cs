@@ -29,6 +29,16 @@ public class MainViewModel : INotifyPropertyChanged
         ExportCommand = new RelayCommand(ExportReport, () => IsNotLoading && (HasScanned || _leftoverResult != null));
         CopyCommandTextCommand = new RelayCommand(CopySuggestedCommand, () => SelectedLeftover is { IsProtected: false, SuggestedCommand.Length: > 0 });
         RestartAsAdminCommand = new RelayCommand(RestartAsAdmin, () => IsNotLoading && !IsAdministrator);
+
+        RescanCommand = new RelayCommand(Rescan, () => SelectedTabIndex == DriversTabIndex
+            ? ScanCommand.CanExecute(null)
+            : ScanLeftoverCommand.CanExecute(null));
+        ShowDriversTabCommand = new RelayCommand(() => SelectedTabIndex = DriversTabIndex);
+        ShowLeftoverTabCommand = new RelayCommand(() => SelectedTabIndex = LeftoverTabIndex);
+        ExitCommand = new RelayCommand(() => Application.Current.Shutdown());
+        OpenRepositoryCommand = new RelayCommand(() => OpenUrl(RepositoryUrl));
+        OpenIssuesCommand = new RelayCommand(() => OpenUrl(RepositoryUrl + "/issues"));
+        ShowAboutCommand = new RelayCommand(ShowAbout);
     }
 
     public ObservableCollection<DeviceCategory> Categories { get; } = new(DeviceCategory.GetAll());
@@ -201,6 +211,61 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand ExportCommand { get; }
     public ICommand CopyCommandTextCommand { get; }
     public ICommand RestartAsAdminCommand { get; }
+
+    // ---- メニュー（タブの切り替え、再スキャン、ヘルプ） ----
+
+    public const int DriversTabIndex = 0;
+    public const int LeftoverTabIndex = 1;
+    private const string RepositoryUrl = "https://github.com/fara1991/fara-windows-checker";
+
+    private int _selectedTabIndex;
+
+    /// <summary>表示中のタブ（0: ドライバー診断、1: アンインストール漏れチェック）。</summary>
+    public int SelectedTabIndex
+    {
+        get => _selectedTabIndex;
+        set
+        {
+            if (_selectedTabIndex == value) return;
+            _selectedTabIndex = value;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>表示中のタブのスキャン（ドライバー診断、または残骸チェック）をやり直す。</summary>
+    public ICommand RescanCommand { get; }
+    public ICommand ShowDriversTabCommand { get; }
+    public ICommand ShowLeftoverTabCommand { get; }
+    public ICommand ExitCommand { get; }
+    public ICommand OpenRepositoryCommand { get; }
+    public ICommand OpenIssuesCommand { get; }
+    public ICommand ShowAboutCommand { get; }
+
+    private void Rescan()
+    {
+        var command = SelectedTabIndex == DriversTabIndex ? ScanCommand : ScanLeftoverCommand;
+        if (command.CanExecute(null)) command.Execute(null);
+    }
+
+    private void OpenUrl(string url)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
+        }
+        catch (Win32Exception ex)
+        {
+            StatusMessage = $"ブラウザーを開けませんでした（詳細: {ex.Message}）";
+        }
+    }
+
+    private static void ShowAbout()
+        => MessageBox.Show(
+            "FaraWindowsChecker\r\n\r\n" +
+            "Windowsのデバイスドライバーの診断と、アンインストール後の残骸の検出を行うツールです。\r\n" +
+            "検出は読み取り専用で、削除などは自動で実行しません。\r\n\r\n" +
+            $"{RepositoryUrl}\r\nMIT License",
+            "バージョン情報", MessageBoxButton.OK, MessageBoxImage.Information);
 
     private async Task ScanLeftoverAsync()
     {
