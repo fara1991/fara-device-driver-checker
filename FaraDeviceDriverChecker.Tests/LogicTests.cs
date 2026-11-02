@@ -66,6 +66,36 @@ public class LogicTests
         Assert.Equal(2, PnpUtilParser.Parse(en).Count);
     }
 
+    [Theory]
+    [InlineData("\"C:\\Program Files\\Foo\\unins000.exe\" /S", "C:\\Program Files\\Foo\\unins000.exe")]
+    [InlineData("C:\\Program Files\\Foo Bar\\setup.exe /uninstall", "C:\\Program Files\\Foo Bar\\setup.exe")]
+    [InlineData("MsiExec.exe /X{409CB30E-E457-4008-9B1A-ED1B9EA21140}", "MsiExec.exe")]
+    [InlineData("C:\\a\\b.cmd", "C:\\a\\b.cmd")]
+    [InlineData("\"\"", null)]
+    [InlineData("", null)]
+    [InlineData(null, null)]
+    [InlineData("rundll32 foo.dll,Remove", null)]
+    public void コマンドラインから実行ファイルのパスを取り出せる(string? commandLine, string? expected)
+        => Assert.Equal(expected, PathResolver.ExtractExePath(commandLine));
+
+    [Theory]
+    [InlineData(null, "foo", "C:\\Windows\\System32\\drivers\\foo.sys")]
+    [InlineData("", "foo", "C:\\Windows\\System32\\drivers\\foo.sys")]
+    [InlineData("System32\\DRIVERS\\foo.sys", "foo", "C:\\Windows\\System32\\DRIVERS\\foo.sys")]
+    [InlineData("\\SystemRoot\\System32\\drivers\\foo.sys", "foo", "C:\\Windows\\System32\\drivers\\foo.sys")]
+    [InlineData("\\??\\C:\\Program Files\\Vendor\\foo.sys", "foo", "C:\\Program Files\\Vendor\\foo.sys")]
+    [InlineData("D:\\drv\\foo.sys", "foo", "D:\\drv\\foo.sys")]
+    [InlineData("\"D:\\drv dir\\foo.sys\"", "foo", "D:\\drv dir\\foo.sys")]
+    [InlineData("%SystemRoot%\\System32\\drivers\\foo.sys", "foo", "C:\\Windows\\System32\\drivers\\foo.sys")]
+    public void ドライバーの_ImagePath_を絶対パスに解決できる(string? imagePath, string name, string expected)
+    {
+        // %SystemRoot% の展開結果が環境依存にならないよう、期待値側にも同じ展開を適用する
+        var actual = PathResolver.ResolveDriverImagePath(imagePath, name, "C:\\Windows");
+        var normalized = actual.Replace(Environment.GetEnvironmentVariable("SystemRoot") ?? "C:\\Windows", "C:\\Windows",
+            StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(expected, normalized);
+    }
+
     /// <summary>実機で全チェックを実行し、例外なく完了することと結果を確認する（読み取り専用）。</summary>
     [Fact]
     public void 実機で残骸チェックが完了する()

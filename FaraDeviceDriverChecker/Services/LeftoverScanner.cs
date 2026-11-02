@@ -29,6 +29,7 @@ public class LeftoverScanner
     private const string UninstallPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall";
     private const string InstallerProductsPath = @"SOFTWARE\Classes\Installer\Products";
     private const string InstallerDependenciesPath = @"SOFTWARE\Classes\Installer\Dependencies";
+    private const string ServicesPath = @"SYSTEM\CurrentControlSet\Services";
     private const string UserDataProductsPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\UserData\S-1-5-18\Products";
 
     private const string CatDriverRef = "存在しない INF の参照";
@@ -65,6 +66,7 @@ public class LeftoverScanner
         Guarded("Installer\\Products / UserData", () => CheckInstallerRegistrations(entries, storeInfNames));
         Guarded("デバイスが参照する INF", CheckDeviceInfReferences);
         Guarded("サービス", CheckServices);
+        Guarded("カーネルドライバーのサービス登録", CheckKernelDriverServices);
         Guarded("Package Cache", () => CheckPackageCache(entries));
         Guarded("プログラムフォルダー", () => CheckProgramFolders(entries));
         Guarded("旧版ドライバーの重複", () => CheckDuplicateDrivers(packages));
@@ -168,7 +170,7 @@ public class LeftoverScanner
         foreach (var e in entries.Where(e => e.DisplayName != ""))
         {
             var command = DeleteWithBackupCommand(e.RegistryPath, $"backup-uninstall-{e.KeyName.Trim('{', '}')}");
-            var exe = ExtractExePath(e.UninstallString);
+            var exe = PathResolver.ExtractExePath(e.UninstallString);
 
             if (exe != null && Path.IsPathRooted(exe) && !File.Exists(exe))
             {
@@ -204,19 +206,6 @@ public class LeftoverScanner
         using var hklm = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
         using var key = hklm.OpenSubKey($@"{InstallerProductsPath}\{packedGuid}");
         return key != null;
-    }
-
-    private static string? ExtractExePath(string commandLine)
-    {
-        if (string.IsNullOrWhiteSpace(commandLine)) return null;
-        var text = Environment.ExpandEnvironmentVariables(commandLine.Trim());
-        if (text.StartsWith('"'))
-        {
-            var end = text.IndexOf('"', 1);
-            return end > 1 ? text[1..end] : null;
-        }
-        var m = Regex.Match(text, @"^(.+?\.(exe|bat|cmd|com))(\s|$)", RegexOptions.IgnoreCase);
-        return m.Success ? m.Groups[1].Value : null;
     }
 
     // ---- レジストリ: Installer\Products / UserData、MSI が参照する INF ----
@@ -383,7 +372,7 @@ public class LeftoverScanner
             var display = o["DisplayName"]?.ToString() ?? name;
             var state = o["State"]?.ToString() ?? "";
             var startMode = o["StartMode"]?.ToString() ?? "";
-            var exe = ExtractExePath(o["PathName"]?.ToString() ?? "");
+            var exe = PathResolver.ExtractExePath(o["PathName"]?.ToString() ?? "");
             if (name == "" || exe == null || !Path.IsPathRooted(exe)) continue;
 
             // Windows 本体のサービスは対象外にする
@@ -405,6 +394,44 @@ public class LeftoverScanner
                     $"停止・無効のまま残るサービス: {display}", name,
                     $"実行ファイル: {exe}。{known}利用者が意図して無効化している場合は対象外です。", command);
             }
+        }
+    }
+
+    // ---- カーネルドライバーのサービス登録 ----
+
+    /// <summary>実体の .sys が無いのに残っているカーネルドライバーのサービス登録を検出する。</summary>
+    private void CheckKernelDriverServices()
+    {
+        var windir = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+        using var hklm = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
+        using var services = hklm.OpenSubKey(ServicesPath);
+        if (services == null) return;
+
+        foreach (var name in services.GetSubKeyNames())
+        {
+            using var key = services.OpenSubKey(name);
+            if (key == null) continue;
+
+            // Type 1 = カーネルドライバー、2 = ファイルシステムドライバー
+            var type = key.GetValue("Type") as int? ?? 0;
+            if (type is not (1 or 2)) continue;
+
+            // 0 = Boot, 1 = System, 2 = Auto, 3 = Manual, 4 = Disabled。無効のものは影響が無いので対象外
+            var start = key.GetValue("Start") as int? ?? 4;
+            if (start > 3) continue;
+
+            var image = PathResolver.ResolveDriverImagePath(ReadString(key, "ImagePath"), name, windir);
+            if (File.Exists(image)) continue;
+
+            var isStorage = StorageGuard.IsStorageName(name) || StorageGuard.IsStorageName(Path.GetFileName(image));
+            var regPath = $@"HKLM\{ServicesPath}\{name}";
+            var startText = start switch { 0 => "Boot", 1 => "System", 2 => "Auto", _ => "Manual" };
+            Add(CatService, start <= 2 ? LeftoverSeverity.Review : LeftoverSeverity.Caution,
+                $"実体の無いドライバーのサービス登録: {name}", regPath,
+                $"開始={startText} / ドライバーファイルが見つかりません: {image}。" +
+                (start <= 2 ? "起動時に読み込まれる設定のため、起動エラーの原因になり得ます。" : "") +
+                (isStorage ? "ストレージ系のため、手動で削除しないでください。" : ""),
+                isStorage ? "" : DeleteWithBackupCommand(regPath, $"backup-service-{name}"), isStorage);
         }
     }
 
