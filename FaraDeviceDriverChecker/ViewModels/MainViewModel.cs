@@ -113,7 +113,7 @@ public class MainViewModel : INotifyPropertyChanged
         set { _filterCategory = value ?? FilterAll; OnFilterChanged(); }
     }
 
-    public string FilterSummary => $"表示 {LeftoverView.Cast<object>().Count()} / 全 {LeftoverItems.Count} 件";
+    public string FilterSummary => $"表示 {LeftoverView.Cast<object>().Count()} / 全 {LeftoverItems.Count}件";
 
     public ICommand ClearFilterCommand => new RelayCommand(() =>
     {
@@ -199,7 +199,7 @@ public class MainViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            StatusMessage = $"エラー: {ex.Message}";
+            StatusMessage = $"残骸チェックに失敗しました（詳細: {ex.Message}）";
         }
         finally
         {
@@ -228,7 +228,8 @@ public class MainViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            MessageBox.Show(ex.Message, "エクスポートに失敗しました", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show($"ファイルを保存できませんでした。保存先と書き込み権限を確認してください。\r\n\r\n詳細: {ex.Message}",
+                "エクスポートに失敗しました", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -258,8 +259,8 @@ public class MainViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            // UAC のキャンセルなど
-            StatusMessage = $"再起動しませんでした: {ex.Message}";
+            // UACのキャンセルなど
+            StatusMessage = $"管理者として再起動しませんでした（詳細: {ex.Message}）";
         }
     }
 
@@ -285,12 +286,12 @@ public class MainViewModel : INotifyPropertyChanged
             }
 
             var problemCount = devices.Count(d => d.HasProblem);
-            StatusMessage = $"{devices.Count}個のデバイス / 問題: {problemCount}個";
+            StatusMessage = $"{devices.Count}件のデバイス / 問題: {problemCount}件";
             HasScanned = true;
         }
         catch (Exception ex)
         {
-            StatusMessage = $"エラー: {ex.Message}";
+            StatusMessage = $"スキャンに失敗しました（詳細: {ex.Message}）";
         }
         finally
         {
@@ -301,7 +302,7 @@ public class MainViewModel : INotifyPropertyChanged
     private async Task RunUpdateAsync()
     {
         IsLoading = true;
-        StatusMessage = "Updateを実行中...";
+        StatusMessage = "ドライバーを更新中...";
 
         try
         {
@@ -310,7 +311,7 @@ public class MainViewModel : INotifyPropertyChanged
 
             if (success)
             {
-                MessageBox.Show("Updateが完了しました", "完了", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("ドライバーの更新が完了しました。", "完了", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
             {
@@ -319,8 +320,9 @@ public class MainViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            StatusMessage = $"エラー: {ex.Message}";
-            MessageBox.Show(ex.Message, "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
+            StatusMessage = $"ドライバーの更新に失敗しました（詳細: {ex.Message}）";
+            MessageBox.Show($"ドライバーの更新中にエラーが発生しました。\r\n\r\n詳細: {ex.Message}",
+                "エラー", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {

@@ -167,7 +167,7 @@ public class DeviceService
             }
             catch (Exception ex)
             {
-                return (false, $"エラー: {ex.Message}");
+                return (false, $"ドライバーの更新に失敗しました（詳細: {ex.Message}）");
             }
         });
     }
@@ -234,7 +234,7 @@ public class DeviceService
         }
         catch (Exception ex)
         {
-            device.DriverVersion = $"取得エラー: {ex.Message}";
+            device.DriverVersion = $"取得に失敗しました（詳細: {ex.Message}）";
             device.HasProblem = true;
             device.ProblemCode = "ドライバー情報取得エラー";
         }

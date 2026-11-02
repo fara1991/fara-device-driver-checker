@@ -11,7 +11,7 @@ Windowsのデバイスドライバーの状態を診断し、必要に応じてW
 
 ## 主な機能
 
-- **マルチカテゴリ診断**: 以下の主要なデバイスカテゴリを複数同時にスキャン可能
+- **マルチカテゴリ診断**: 以下の主要なデバイスカテゴリを複数同時にスキャンできます。
   - オーディオ
   - ディスプレイ
   - ネットワーク
@@ -23,12 +23,12 @@ Windowsのデバイスドライバーの状態を診断し、必要に応じてW
 - **ドライバー更新**: Windows Update APIを利用して、ドライバー更新プログラムをインストール。
 - **Windows Update連携**: アプリケーション内から直接Windows Updateの設定を開いたり、更新を試行したりすることが可能。
 - **アンインストール漏れ（残骸）チェック**: アンインストールできない原因になる残骸を検出（読み取り専用）。詳細は下記。
-- **エクスポート**: 診断結果をテキスト / JSON で保存。
+- **エクスポート**: 診断結果をテキスト / JSONで保存。
 
 ## アンインストール漏れ（残骸）チェック
 
 「アンインストール漏れチェック」タブで、アンインストールに失敗する原因になりやすい残骸を検出して一覧表示します。
-Intel Rapid Storage Technology が、ドライバーストアに無い `iaAHCIC.inf` の削除に失敗（`DiUninstallDriver` が 0x490）して
+Intel Rapid Storage Technologyが、ドライバーストアに無い `iaAHCIC.inf` の削除に失敗（`DiUninstallDriver` が0x490）して
 アンインストールできなくなった事例を一般化したものです。
 
 **このチェックは読み取り専用です。レジストリ・ファイル・サービスの変更や削除は一切自動実行しません。**
@@ -38,28 +38,28 @@ Intel Rapid Storage Technology が、ドライバーストアに無い `iaAHCIC.
 
 | 分類 | 内容 |
 |---|---|
-| 存在しない INF の参照 | MSI（キャッシュ済み `.msi` の File テーブル）が同梱する `.inf` がドライバーストアに無い／デバイスが `C:\Windows\INF\oemNN.inf` を参照しているのに実体が無い |
-| サービスの残り | 実行ファイルが存在しないサービス、Program Files 配下で「停止・無効」のまま残るサービス（`IAStorDataMgrSvc` など） |
-| フォルダーの残り | 登録の無い `ProgramData\Package Cache\{GUID}`、既知パターン（Intel RST のプログラムフォルダー）、ファイルが 1 つも無い空のベンダーフォルダー |
-| レジストリの残り | HKLM / WOW6432Node / HKCU の `Uninstall`（アンインストーラーやインストール先が無い、MSI なのに `Installer\Products` の登録が無い）、`Installer\Products` と `Installer\UserData`（キャッシュ MSI が無い、Products にだけ残る）。どちら側のビューにあるかも表示します |
-| 旧版ドライバーの重複 | `pnputil /enum-drivers` 相当で同名 INF の旧版を検出（使用中のものは対象外） |
-| 問題のあるデバイス | `Get-PnpDevice -PresentOnly` で Status が OK 以外に相当するデバイス（WMI の `Win32_PnPEntity`） |
+| 存在しないINFの参照 | MSI（キャッシュ済み `.msi` のFileテーブル）が同梱する `.inf` がドライバーストアに無い／デバイスが `C:\Windows\INF\oemNN.inf` を参照しているのに実体が無い |
+| サービスの残り | 実行ファイルが存在しないサービス、Program Files配下で「停止・無効」のまま残るサービス（`IAStorDataMgrSvc` など） |
+| フォルダーの残り | 登録の無い `ProgramData\Package Cache\{GUID}`、既知パターン（Intel RSTのプログラムフォルダー）、ファイルが1つも無い空のベンダーフォルダー |
+| レジストリの残り | HKLM / WOW6432Node / HKCUの `Uninstall`（アンインストーラーやインストール先が無い、MSIなのに `Installer\Products` の登録が無い）、`Installer\Products` と `Installer\UserData`（キャッシュMSIが無い、Productsにだけ残る）。どちら側のビューにあるかも表示します |
+| 旧版ドライバーの重複 | `pnputil /enum-drivers` 相当で同名INFの旧版を検出（使用中のものは対象外） |
+| 問題のあるデバイス | `Get-PnpDevice -PresentOnly` でStatusがOK以外に相当するデバイス（WMIの `Win32_PnPEntity`） |
 
 ### 使い方
 
 1. 「アンインストール漏れチェック」タブで「残骸をチェック」を押します。
-2. 一覧は、キーワード（空白区切りで AND。内容・対象・詳細・分類を検索）、重要度、分類で絞り込めます。「クリア」で解除します。
+2. 一覧は、キーワード（空白区切りでAND。内容・対象・詳細・分類を検索）、重要度、分類で絞り込めます。「クリア」で解除します。
    行を選ぶと、下に詳細と案内コマンドが表示されます。「コマンドをコピー」でクリップボードにコピーできます。
-3. コマンドは内容と対象を必ず確認し、**管理者権限の PowerShell／コマンドプロンプトで手動実行**してください。
-4. 画面右上の「エクスポート」で、診断結果（ドライバー診断と残骸チェック）をテキストまたは JSON に保存できます。
+3. コマンドは内容と対象を必ず確認し、**管理者権限のPowerShell／コマンドプロンプトで手動実行**してください。
+4. 画面右上の「エクスポート」で、診断結果（ドライバー診断と残骸チェック）をテキストまたはJSONに保存できます。
 5. `Installer\UserData` の読み取りには管理者権限が必要な場合があります。「管理者として再起動」（確認ダイアログあり）で起動し直すと、より多く確認できます。
 
 ### 安全方針と限界
 
-- ストレージ系ドライバー（`iastorvd`、`iaAHCIC`、`stornvme` などの INF、ディスク／SCSI／IDE ATA／ボリューム系のクラス）は、
+- ストレージ系ドライバー（`iastorvd`、`iaAHCIC`、`stornvme` などのINF、ディスク／SCSI／IDE ATA／ボリューム系のクラス）は、
   削除すると起動できなくなるおそれがあるため、**検出しても削除コマンドを提案しません**（画面にもその旨を表示します）。
 - 旧版ドライバーの削除案内は、どのデバイスにも使われていない非ストレージ系のものに限り、`/force` を付けない `pnputil /delete-driver` です。
-- MSI が参照する INF の検出は、MSI の File テーブルにある `.inf` を基にした推定です。誤検出を避けるため、ストレージ系の INF か、DIFx のドライバー登録テーブル（`MsiDriverPackages`）を持つ MSI の INF だけを対象にします。
+- MSIが参照するINFの検出は、MSIのFileテーブルにある `.inf` を基にした推定です。誤検出を避けるため、ストレージ系のINFか、DIFxのドライバー登録テーブル（`MsiDriverPackages`）を持つMSIのINFだけを対象にします。
 - 空フォルダー・停止無効サービスなどは、利用者が意図して残している場合もあります。
 
 ## インストール
@@ -74,12 +74,12 @@ Intel Rapid Storage Technology が、ドライバーストアに無い `iaAHCIC.
 
 1. **カテゴリの選択**: 左側のカテゴリリストから、診断したいデバイスカテゴリをチェックボックスで選択します（複数選択可）。「すべて」をチェックすると全カテゴリが選択されます。
 2. **スキャンの実行**: 「スキャン」ボタンをクリックすると、選択したカテゴリのデバイス一覧と状態が表示されます。
-3. **更新の実行**: 問題があるデバイスがある場合、「Updateを実行」ボタンからドライバーの更新をインストールできます。
-4. **設定へのアクセス**: 「設定を開く」ボタンから、システムのWindows Update設定を直接開くことができます。
+3. **更新の実行**: 問題があるデバイスがある場合、「ドライバーを更新」ボタンからドライバーの更新をインストールできます。
+4. **設定へのアクセス**: 「Windows Updateの設定を開く」ボタンから、システムのWindows Update設定を直接開くことができます。
 
 ## 結果の見方
 
-各デバイスのステータスに応じて、以下のアイコンが表示されます：
+各デバイスのステータスに応じて、以下のアイコンが表示されます:
 
 | アイコン | 状態 | 説明 |
 |:---:|:---:|:---|
@@ -88,15 +88,15 @@ Intel Rapid Storage Technology が、ドライバーストアに無い `iaAHCIC.
 
 ## システム要件
 
-- **OS**: Windows 10 以降 (64bit)
-- **ランタイム**: 不要 (リリース版は単一実行ファイルとして配布)
+- **OS**: Windows 10以降 (64bit)
+- **ランタイム**: 不要（リリース版は単一実行ファイルとして配布）
 - **権限**: ドライバー更新を実行する場合は、管理者権限が必要です
 
 ## トラブルシューティング
 
 ### プログラムが起動しない
 - セキュリティソフトによってブロックされている場合は、実行を許可してください。
-- Windows SmartScreen が警告を表示する場合は、「詳細情報」から実行を許可できます。
+- Windows SmartScreenが警告を表示する場合は、「詳細情報」から実行を許可できます。
 
 ### デバイスが表示されない
 - デバイスが物理的に接続されているか確認してください。
@@ -125,13 +125,13 @@ FaraDeviceDriverChecker/
 ├── Services/
 │   ├── DeviceService.cs     # デバイス情報取得・更新サービス
 │   ├── LeftoverScanner.cs   # 残骸チェック（読み取り専用）
-│   ├── PnpUtilParser.cs     # pnputil /enum-drivers の解析
-│   └── ReportExporter.cs    # テキスト / JSON エクスポート
+│   ├── PnpUtilParser.cs     # pnputil /enum-driversの解析
+│   └── ReportExporter.cs    # テキスト / JSONエクスポート
 ├── Utilities/
 │   ├── WmiHelper.cs         # WMIクエリヘルパー
 │   ├── ErrorCodeHelper.cs   # エラーコード変換
-│   ├── MsiGuid.cs           # MSI 圧縮 GUID の相互変換
-│   ├── MsiDatabase.cs       # キャッシュ MSI の読み取り
+│   ├── MsiGuid.cs           # MSI圧縮GUIDの相互変換
+│   ├── MsiDatabase.cs       # キャッシュMSIの読み取り
 │   └── StorageGuard.cs      # ストレージ系の保護判定
 ├── MainWindow.xaml          # メインウィンドウUI
 └── App.xaml                 # アプリケーション設定
@@ -142,7 +142,7 @@ FaraDeviceDriverChecker/
 ### 必要条件
 
 - .NET 9.0 SDK
-- Windows 10 以降
+- Windows 10以降
 
 ### テスト
 
@@ -150,7 +150,7 @@ FaraDeviceDriverChecker/
 dotnet test FaraDeviceDriverChecker.Tests
 ```
 
-実機の読み取り専用チェックを含むため、Windows 上で実行してください。
+実機の読み取り専用チェックを含むため、Windows上で実行してください。
 
 ### ビルド手順
 

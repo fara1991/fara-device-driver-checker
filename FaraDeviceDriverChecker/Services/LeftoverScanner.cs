@@ -32,17 +32,17 @@ public class LeftoverScanner
     private const string ServicesPath = @"SYSTEM\CurrentControlSet\Services";
     private const string UserDataProductsPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\UserData\S-1-5-18\Products";
 
-    // サービスの Type（レジストリ値）
+    // サービスのType（レジストリ値）
     private const int ServiceTypeKernelDriver = 1;
     private const int ServiceTypeFileSystemDriver = 2;
 
-    // サービスの Start（レジストリ値）
+    // サービスのStart（レジストリ値）
     private const int StartBoot = 0;
     private const int StartSystem = 1;
     private const int StartAuto = 2;
     private const int StartDisabled = 4;
 
-    private const string CatDriverRef = "存在しない INF の参照";
+    private const string CatDriverRef = "存在しないINFの参照";
     private const string CatService = "サービスの残り";
     private const string CatFolder = "フォルダーの残り";
     private const string CatRegistry = "レジストリの残り";
@@ -50,7 +50,7 @@ public class LeftoverScanner
     private const string CatProblem = "問題のあるデバイス";
     private const string CatInfo = "スキャン情報";
 
-    /// <summary>既知の残骸パターン（Intel RST の事例）。フォルダーが残り、製品の登録が無い場合に報告する。</summary>
+    /// <summary>既知の残骸パターン（Intel RSTの事例）。フォルダーが残り、製品の登録が無い場合に報告する。</summary>
     private static readonly (string RelativeFolder, string NameKeyword)[] KnownProductFolders =
     [
         (@"Intel\Intel(R) Rapid Storage Technology", "Rapid Storage")
@@ -68,13 +68,13 @@ public class LeftoverScanner
         _items.Clear();
         _userDataDenied = false;
 
-        var entries = Guarded("Uninstall 情報の読み取り", ReadUninstallEntries) ?? [];
+        var entries = Guarded("Uninstall情報の読み取り", ReadUninstallEntries) ?? [];
         var packages = Guarded("pnputil /enum-drivers", LoadDriverPackages);
         var storeInfNames = BuildStoreInfNames(packages);
 
-        Guarded("Uninstall 情報の整合性", () => CheckUninstallEntries(entries));
+        Guarded("Uninstall情報の整合性", () => CheckUninstallEntries(entries));
         Guarded("Installer\\Products / UserData", () => CheckInstallerRegistrations(entries, storeInfNames));
-        Guarded("デバイスが参照する INF", CheckDeviceInfReferences);
+        Guarded("デバイスが参照するINF", CheckDeviceInfReferences);
         Guarded("サービス", CheckServices);
         Guarded("カーネルドライバーのサービス登録", CheckKernelDriverServices);
         Guarded("Package Cache", () => CheckPackageCache(entries));
@@ -84,9 +84,9 @@ public class LeftoverScanner
 
         if (_userDataDenied)
         {
-            Add(CatInfo, LeftoverSeverity.Info, "Installer\\UserData を読み取れませんでした",
+            Add(CatInfo, LeftoverSeverity.Info, "Installer\\UserDataを読み取れませんでした",
                 UserDataProductsPath,
-                "アクセスが拒否されました。管理者として起動し直すと MSI のキャッシュ登録も確認できます。");
+                "アクセスが拒否されました。管理者として起動し直すとMSIのキャッシュ登録も確認できます。");
         }
 
         var order = new[] { LeftoverSeverity.Review, LeftoverSeverity.Caution, LeftoverSeverity.Info };
@@ -186,7 +186,7 @@ public class LeftoverScanner
             {
                 Add(CatRegistry, LeftoverSeverity.Review,
                     $"アンインストーラーが存在しません: {e.DisplayName}", e.RegistryPath,
-                    $"{e.View} の Uninstall 情報が、存在しない実行ファイルを指しています: {exe}", command);
+                    $"{e.View}のUninstall情報が、存在しない実行ファイルを指しています: {exe}", command);
                 continue;
             }
 
@@ -194,18 +194,18 @@ public class LeftoverScanner
             {
                 Add(CatRegistry, LeftoverSeverity.Caution,
                     $"インストール先が存在しません: {e.DisplayName}", e.RegistryPath,
-                    $"{e.View} の InstallLocation が見つかりません: {e.InstallLocation}", command);
+                    $"{e.View}のInstallLocationが見つかりません: {e.InstallLocation}", command);
                 continue;
             }
 
-            // MSI 製品なのに Installer\Products への登録が無い
+            // MSI製品なのにInstaller\Productsへの登録が無い
             var isMsiKey = MsiGuid.IsGuid(e.KeyName) && e.View != "HKCU" &&
                            (e.IsMsi || e.UninstallString.Contains("msiexec", StringComparison.OrdinalIgnoreCase));
             if (isMsiKey && MsiGuid.Pack(e.KeyName) is { } packed && !ProductRegistered(packed))
             {
                 Add(CatRegistry, LeftoverSeverity.Review,
-                    $"MSI の登録が無い Uninstall 情報: {e.DisplayName}", e.RegistryPath,
-                    $"{e.View} に Uninstall 情報がありますが、HKLM\\{InstallerProductsPath}\\{packed} がありません。" +
+                    $"MSIの登録が無いUninstall情報: {e.DisplayName}", e.RegistryPath,
+                    $"{e.View}にUninstall情報がありますが、HKLM\\{InstallerProductsPath}\\{packed}がありません。" +
                     "アンインストールが失敗する原因になります。", command);
             }
         }
@@ -218,7 +218,7 @@ public class LeftoverScanner
         return key != null;
     }
 
-    // ---- レジストリ: Installer\Products / UserData、MSI が参照する INF ----
+    // ---- レジストリ: Installer\Products / UserData、MSIが参照するINF ----
 
     private void CheckInstallerRegistrations(List<UninstallEntry> entries, HashSet<string>? storeInfNames)
     {
@@ -262,16 +262,16 @@ public class LeftoverScanner
             if (userDataKnown && !string.IsNullOrEmpty(localPackage) && !File.Exists(localPackage))
             {
                 Add(CatRegistry, LeftoverSeverity.Review,
-                    $"キャッシュ済み MSI が存在しません: {label}", userDataPath,
-                    $"LocalPackage が見つかりません: {localPackage}。修復・アンインストールが失敗する原因になります。",
+                    $"キャッシュ済みMSIが存在しません: {label}", userDataPath,
+                    $"LocalPackageが見つかりません: {localPackage}。修復・アンインストールが失敗する原因になります。",
                     DeleteWithBackupCommand(userDataPath, $"backup-userdata-{packed}") + "\r\n" +
                     DeleteWithBackupCommand(productsPath, $"backup-products-{packed}"));
             }
             else if (!uninstallGuids.Contains(guid) && !_userDataDenied && !userDataKnown)
             {
                 Add(CatRegistry, LeftoverSeverity.Caution,
-                    $"Installer\\Products にだけ残る登録: {label}", productsPath,
-                    "Uninstall 情報も UserData の InstallProperties もありません。",
+                    $"Installer\\Productsにだけ残る登録: {label}", productsPath,
+                    "Uninstall情報もUserDataのInstallPropertiesもありません。",
                     DeleteWithBackupCommand(productsPath, $"backup-products-{packed}"));
             }
 
@@ -282,7 +282,7 @@ public class LeftoverScanner
         }
     }
 
-    /// <summary>Installer\Products を消した後に Installer\UserData だけが残った登録を検出する。</summary>
+    /// <summary>Installer\Productsを消した後にInstaller\UserDataだけが残った登録を検出する。</summary>
     private void CheckUserDataOrphans(RegistryKey hklm, HashSet<string> productPacked)
     {
         try
@@ -298,9 +298,9 @@ public class LeftoverScanner
                 var name = props == null ? "" : ReadString(props, "DisplayName") ?? "";
                 var userDataPath = $@"HKLM\{UserDataProductsPath}\{packed}";
                 Add(CatRegistry, LeftoverSeverity.Caution,
-                    $"Installer\\UserData にだけ残る登録: {(name != "" ? name : guid)}", userDataPath,
-                    $"Installer\\Products\\{packed} が無いのに UserData が残っています（製品コード {guid}）。" +
-                    "Products だけを手動で削除した後などに起きます。",
+                    $"Installer\\UserDataにだけ残る登録: {(name != "" ? name : guid)}", userDataPath,
+                    $"Installer\\Products\\{packed}が無いのにUserDataが残っています（製品コード {guid}）。" +
+                    "Productsだけを手動で削除した後などに起きます。",
                     DeleteWithBackupCommand(userDataPath, $"backup-userdata-{packed}"));
             }
         }
@@ -310,7 +310,7 @@ public class LeftoverScanner
         }
     }
 
-    /// <summary>MSI が同梱する INF が、ドライバーストアに存在するか確認する。</summary>
+    /// <summary>MSIが同梱するINFが、ドライバーストアに存在するか確認する。</summary>
     private void CheckMsiInfReferences(string label, string productCode, string localPackage, HashSet<string> storeInfNames)
     {
         using var db = MsiDatabase.TryOpen(localPackage);
@@ -321,8 +321,8 @@ public class LeftoverScanner
             .Where(f => f.EndsWith(".inf", StringComparison.OrdinalIgnoreCase))
             .Distinct(StringComparer.OrdinalIgnoreCase);
 
-        // DIFx のドライバー登録テーブルがある MSI だけを、非ストレージ系の検出対象にする
-        // （SDK のように INF を単なるファイルとして同梱するだけの MSI の誤検出を避ける）
+        // DIFxのドライバー登録テーブルがあるMSIだけを、非ストレージ系の検出対象にする
+        // （SDKのようにINFを単なるファイルとして同梱するだけのMSIの誤検出を避ける）
         var hasDriverTable = db.QueryFirstColumn("SELECT `Component` FROM `MsiDriverPackages`").Count > 0;
 
         foreach (var inf in infNames)
@@ -332,16 +332,16 @@ public class LeftoverScanner
             var isStorage = StorageGuard.IsStorageName(inf);
             if (!isStorage && !hasDriverTable) continue;
             Add(CatDriverRef, isStorage ? LeftoverSeverity.Review : LeftoverSeverity.Caution,
-                $"{label} が参照する INF がドライバーストアにありません: {inf}", productCode,
-                "アンインストール時にドライバー削除（DiUninstallDriver）が 0x490 (ERROR_NOT_FOUND) で失敗し、" +
-                "MSI が 1603 で終了する原因になります。" +
-                (isStorage ? "ストレージ系の INF のため、手動で削除・登録解除しないでください。" : "") +
-                $"（参照元 MSI: {localPackage}。File テーブルの .inf を基にした推定で、未選択の機能の INF も含み得ます）",
+                $"{label}が参照するINFがドライバーストアにありません: {inf}", productCode,
+                "アンインストール時にドライバー削除（DiUninstallDriver）が0x490 (ERROR_NOT_FOUND) で失敗し、" +
+                "MSIが1603で終了する原因になります。" +
+                (isStorage ? "ストレージ系のINFのため、手動で削除・登録解除しないでください。" : "") +
+                $"（参照元MSI: {localPackage}。Fileテーブルの.infを基にした推定で、未選択の機能のINFも含み得ます）",
                 "pnputil /enum-drivers", isStorage);
         }
     }
 
-    // ---- デバイスが参照する INF ----
+    // ---- デバイスが参照するINF ----
 
     private void CheckDeviceInfReferences()
     {
@@ -356,8 +356,8 @@ public class LeftoverScanner
 
             var name = o["DeviceName"]?.ToString() ?? "(名前なし)";
             Add(CatDriverRef, LeftoverSeverity.Review,
-                $"デバイスが存在しない INF を参照しています: {name}", o["DeviceID"]?.ToString() ?? "",
-                $"{inf} が {infDir} にありません。ドライバーの再インストールが必要な可能性があります。",
+                $"デバイスが存在しないINFを参照しています: {name}", o["DeviceID"]?.ToString() ?? "",
+                $"{inf}が {infDir}にありません。ドライバーの再インストールが必要な可能性があります。",
                 $"Get-PnpDevice -InstanceId '{o["DeviceID"]}' | Format-List *", StorageGuard.IsStorageName(inf));
         }
     }
@@ -373,7 +373,7 @@ public class LeftoverScanner
             Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)
         };
 
-        // Win32_Service はユーザーモードのサービスのみ（カーネルドライバーは含まない）
+        // Win32_Serviceはユーザーモードのサービスのみ（カーネルドライバーは含まない）
         using var searcher = new ManagementObjectSearcher(
             "SELECT Name, DisplayName, State, StartMode, PathName FROM Win32_Service");
         foreach (var o in searcher.Get())
@@ -385,7 +385,7 @@ public class LeftoverScanner
             var exe = PathResolver.ExtractExePath(o["PathName"]?.ToString() ?? "");
             if (name == "" || exe == null || !Path.IsPathRooted(exe)) continue;
 
-            // Windows 本体のサービスは対象外にする
+            // Windows本体のサービスは対象外にする
             if (exe.StartsWith(windir, StringComparison.OrdinalIgnoreCase)) continue;
 
             var command = $"sc.exe qc \"{name}\"\r\nsc.exe delete \"{name}\"";
@@ -399,7 +399,7 @@ public class LeftoverScanner
                      programRoots.Any(r => exe.StartsWith(r, StringComparison.OrdinalIgnoreCase)))
             {
                 var known = name.StartsWith("IAStor", StringComparison.OrdinalIgnoreCase)
-                    ? "Intel RST のサービスで、アンインストール後に残る例があります。" : "";
+                    ? "Intel RSTのサービスで、アンインストール後に残る例があります。" : "";
                 Add(CatService, LeftoverSeverity.Caution,
                     $"停止・無効のまま残るサービス: {display}", name,
                     $"実行ファイル: {exe}。{known}利用者が意図して無効化している場合は対象外です。", command);
@@ -409,7 +409,7 @@ public class LeftoverScanner
 
     // ---- カーネルドライバーのサービス登録 ----
 
-    /// <summary>実体の .sys が無いのに残っているカーネルドライバーのサービス登録を検出する。</summary>
+    /// <summary>実体の.sysが無いのに残っているカーネルドライバーのサービス登録を検出する。</summary>
     private void CheckKernelDriverServices()
     {
         var windir = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
@@ -471,8 +471,8 @@ public class LeftoverScanner
             if (prod != null || dep != null) continue;
 
             Add(CatFolder, LeftoverSeverity.Caution,
-                $"登録の無い Package Cache: {Path.GetFileName(dir)}", dir,
-                $"Uninstall・Installer\\Products・Dependencies のいずれにも {guid} が見つかりません。" +
+                $"登録の無いPackage Cache: {Path.GetFileName(dir)}", dir,
+                $"Uninstall・Installer\\Products・Dependenciesのいずれにも {guid}が見つかりません。" +
                 $"サイズ: {FormatSize(DirectorySize(dir))}",
                 $"Remove-Item -LiteralPath '{dir}' -Recurse -Force");
         }
@@ -507,18 +507,18 @@ public class LeftoverScanner
 
                 Add(CatFolder, LeftoverSeverity.Review,
                     $"登録の無い製品フォルダー: {relative}", folder,
-                    $"「{keyword}」を含む製品が Uninstall / Installer\\Products に登録されていません。" +
+                    $"「{keyword}」を含む製品がUninstall / Installer\\Productsに登録されていません。" +
                     "アンインストール後に残ったフォルダーの可能性があります。",
                     $"Remove-Item -LiteralPath '{folder}' -Recurse -Force");
             }
 
-            // 中身がファイルを 1 つも持たない空のフォルダー（ベンダー直下）
+            // 中身がファイルを1つも持たない空のフォルダー（ベンダー直下）
             foreach (var vendor in SafeDirectories(root))
             {
                 if (SafeHasAnyFile(vendor)) continue;
                 Add(CatFolder, LeftoverSeverity.Info,
                     $"ファイルの無い空のフォルダー: {Path.GetFileName(vendor)}", vendor,
-                    "配下にファイルが 1 つもありません。",
+                    "配下にファイルが1つもありません。",
                     $"Remove-Item -LiteralPath '{vendor}' -Recurse");
             }
         }
@@ -562,13 +562,13 @@ public class LeftoverScanner
             CreateNoWindow = true,
             StandardOutputEncoding = Encoding.GetEncoding(CultureInfo.CurrentCulture.TextInfo.OEMCodePage)
         };
-        using var process = Process.Start(psi) ?? throw new InvalidOperationException("pnputil を起動できませんでした");
+        using var process = Process.Start(psi) ?? throw new InvalidOperationException("pnputilを起動できませんでした");
         var output = process.StandardOutput.ReadToEnd();
         process.WaitForExit();
         return PnpUtilParser.Parse(output);
     }
 
-    /// <summary>ドライバーストアにある INF の元の名前（小文字）の集合。pnputil と FileRepository の和集合。</summary>
+    /// <summary>ドライバーストアにあるINFの元の名前（小文字）の集合。pnputilとFileRepositoryの和集合。</summary>
     private static HashSet<string>? BuildStoreInfNames(List<DriverPackage>? packages)
     {
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -635,7 +635,7 @@ public class LeftoverScanner
 
     private void CheckProblemDevices()
     {
-        // Get-PnpDevice -PresentOnly で Status が OK 以外のデバイス相当
+        // Get-PnpDevice -PresentOnlyでStatusがOK以外のデバイス相当
         using var searcher = new ManagementObjectSearcher(
             "SELECT Name, DeviceID, Status, ConfigManagerErrorCode, PNPClass FROM Win32_PnPEntity " +
             "WHERE ConfigManagerErrorCode <> 0 OR (Status IS NOT NULL AND Status <> 'OK')");

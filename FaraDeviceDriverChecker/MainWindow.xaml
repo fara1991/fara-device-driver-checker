@@ -61,7 +61,7 @@
                                     Style="{StaticResource MaterialDesignOutlinedButton}">
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Cog" VerticalAlignment="Center" />
-                                    <TextBlock Text="設定を開く" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="Windows Updateの設定を開く" Margin="8,0,0,0" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Button>
                         </StackPanel>
@@ -122,7 +122,7 @@
                                         Style="{StaticResource MaterialDesignRaisedDarkButton}">
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Download" VerticalAlignment="Center" />
-                                        <TextBlock Text="Updateを実行" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="ドライバーを更新" Margin="8,0,0,0" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
                             </StackPanel>
@@ -226,10 +226,10 @@
                                 </StackPanel>
                                 <TextBlock Text="{Binding AdminStatus}" Margin="0,8,0,0" Opacity="0.7" />
                                 <TextBlock TextWrapping="Wrap" Margin="0,4,0,0" Opacity="0.7"
-                                           Text="このチェックは読み取り専用です。削除などは自動で実行しません。案内コマンドは内容を確認し、管理者権限で手動実行してください。ストレージ系ドライバー（iastorvd 等）は削除対象として提案しません。" />
+                                           Text="このチェックは読み取り専用です。削除などは自動で実行しません。案内コマンドは内容を確認し、管理者権限で手動実行してください。ストレージ系ドライバー（iastorvdなど）は削除対象として提案しません。" />
                                 <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                                     <TextBox Width="260" VerticalAlignment="Center"
-                                             materialDesign:HintAssist.Hint="キーワードで絞り込み（空白区切りで AND）"
+                                             materialDesign:HintAssist.Hint="キーワードで絞り込み（空白区切りでAND）"
                                              Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}" />
                                     <ComboBox Width="110" Margin="12,0,0,0" VerticalAlignment="Center"
                                               materialDesign:HintAssist.Hint="重要度"

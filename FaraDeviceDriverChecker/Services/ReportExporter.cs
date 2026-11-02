@@ -5,7 +5,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using Models;
 
-/// <summary>診断結果（ドライバー診断・残骸チェック）をテキストまたは JSON に書き出す。</summary>
+/// <summary>診断結果（ドライバー診断・残骸チェック）をテキストまたはJSONに書き出す。</summary>
 public static class ReportExporter
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -17,14 +17,14 @@ public static class ReportExporter
     public static string ToText(IReadOnlyList<DeviceInfo> devices, LeftoverScanResult? leftover)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("FaraDeviceDriverChecker 診断レポート");
+        sb.AppendLine("FaraDeviceDriverChecker診断レポート");
         sb.AppendLine($"出力日時: {DateTime.Now:yyyy/MM/dd HH:mm:ss}");
         sb.AppendLine($"OS: {Environment.OSVersion}");
         sb.AppendLine();
 
         if (devices.Count > 0)
         {
-            sb.AppendLine($"■ ドライバー診断（{devices.Count} 件 / 問題 {devices.Count(d => d.HasProblem)} 件）");
+            sb.AppendLine($"■ ドライバー診断（{devices.Count}件 / 問題 {devices.Count(d => d.HasProblem)}件）");
             foreach (var d in devices)
             {
                 sb.AppendLine($"- [{d.StatusDisplay}] {d.Name} | {d.Manufacturer} | {d.Class} | v{d.DriverVersion} | {d.DriverDate}");
@@ -35,7 +35,7 @@ public static class ReportExporter
 
         if (leftover != null)
         {
-            sb.AppendLine($"■ アンインストール漏れ（残骸）チェック（{leftover.Items.Count} 件）");
+            sb.AppendLine($"■ アンインストール漏れ（残骸）チェック（{leftover.Items.Count}件）");
             sb.AppendLine($"スキャン日時: {leftover.ScannedAt:yyyy/MM/dd HH:mm:ss} / 管理者権限: {(leftover.IsAdministrator ? "あり" : "なし")}");
             sb.AppendLine("※ 検出のみで、削除などの変更は行っていません。案内コマンドは内容を確認したうえで手動で実行してください。");
             sb.AppendLine();

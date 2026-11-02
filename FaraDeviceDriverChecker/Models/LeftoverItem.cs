@@ -11,7 +11,7 @@ public enum LeftoverSeverity
     Review
 }
 
-/// <summary>残骸チェックで検出した 1 件分の結果。</summary>
+/// <summary>残骸チェックで検出した1件分の結果。</summary>
 public class LeftoverItem
 {
     public required string Category { get; init; }
