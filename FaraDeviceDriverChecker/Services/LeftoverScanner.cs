@@ -439,7 +439,7 @@ public class LeftoverScanner
         using var services = hklm.OpenSubKey(ServicesPath);
         if (services == null) return;
 
-        // 1 件の読み取り失敗でチェック全体を止めず、読めなかった件数を情報として報告する
+        // 1件の読み取り失敗でチェック全体を止めず、読めなかった件数を情報として報告する
         var unreadable = 0;
         foreach (var name in services.GetSubKeyNames())
         {

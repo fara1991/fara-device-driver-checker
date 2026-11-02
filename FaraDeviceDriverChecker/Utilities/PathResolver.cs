@@ -3,12 +3,12 @@ namespace FaraDeviceDriverChecker.Utilities;
 using System.IO;
 using System.Text.RegularExpressions;
 
-/// <summary>コマンドライン文字列やサービスの ImagePath から、実在確認できるパスを取り出す。</summary>
+/// <summary>コマンドライン文字列やサービスのImagePathから、実在確認できるパスを取り出す。</summary>
 public static class PathResolver
 {
     /// <summary>
-    /// コマンドライン（UninstallString など）から実行ファイルのパスを取り出す。
-    /// 環境変数は展開する。取り出せない場合は null。
+    /// コマンドライン（UninstallStringなど）から実行ファイルのパスを取り出す。
+    /// 環境変数は展開する。取り出せない場合はnull。
     /// </summary>
     public static string? ExtractExePath(string? commandLine)
     {
@@ -25,11 +25,11 @@ public static class PathResolver
 
     /// <summary>
     /// カーネルドライバーのサービス登録（ImagePath）を絶対パスに解決する。
-    /// ImagePath が無い場合は既定の System32\drivers\&lt;サービス名&gt;.sys とみなす。
+    /// ImagePathが無い場合は既定のSystem32\drivers\&lt;サービス名&gt;.sysとみなす。
     /// </summary>
-    /// <param name="imagePath">レジストリの ImagePath の値。無ければ null または空。</param>
+    /// <param name="imagePath">レジストリのImagePathの値。無ければnullまたは空。</param>
     /// <param name="serviceName">サービスのキー名。</param>
-    /// <param name="windowsDir">Windows フォルダー（例: C:\Windows）。</param>
+    /// <param name="windowsDir">Windowsフォルダー（例: C:\Windows）。</param>
     public static string ResolveDriverImagePath(string? imagePath, string serviceName, string windowsDir)
     {
         if (string.IsNullOrWhiteSpace(imagePath))
@@ -47,7 +47,7 @@ public static class PathResolver
         if (Path.IsPathRooted(text) && text.Length > 1 && text[1] == ':')
             return text;
 
-        // "System32\DRIVERS\xxx.sys" のように Windows フォルダー相対で書かれた値
+        // "System32\DRIVERS\xxx.sys" のようにWindowsフォルダー相対で書かれた値
         return Path.Combine(windowsDir, text.TrimStart('\\'));
     }
 }

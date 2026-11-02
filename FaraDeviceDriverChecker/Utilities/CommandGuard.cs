@@ -6,11 +6,11 @@ namespace FaraDeviceDriverChecker.Utilities;
 /// </summary>
 public static class CommandGuard
 {
-    /// <summary>PowerShell は、見た目の似た引用符（“ ” ‘ ’ など）も引用符として扱う。</summary>
-    private const string DoubleQuoteChars = "\"“”„";
-    private const string SingleQuoteChars = "'‘’‚‛";
+    /// <summary>PowerShellは、見た目の似た引用符（“ ” ‘ ’ など）も引用符として扱う。</summary>
+    private const string DoubleQuoteChars = "\"\u201C\u201D\u201E";
+    private const string SingleQuoteChars = "'\u2018\u2019\u201A\u201B";
 
-    /// <summary>二重引用符 "…" の中に埋め込んでよい値か（cmd・PowerShell 共通）。</summary>
+    /// <summary>二重引用符 "…" の中に埋め込んでよい値か（cmd・PowerShell共通）。</summary>
     public static bool IsSafeInDoubleQuotes(string? value)
         => IsPlain(value) && value!.IndexOfAny((DoubleQuoteChars + "$`%").ToCharArray()) < 0;
 
