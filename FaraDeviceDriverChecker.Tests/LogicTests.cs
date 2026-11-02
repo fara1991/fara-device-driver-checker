@@ -175,7 +175,7 @@ public class LogicTests
         Assert.DoesNotContain(result.Items, i => i.Title.Contains("の確認に失敗しました"));
 
         // ストレージ系は案内コマンドを出さない
-        Assert.All(result.Items.Where(i => i.IsProtected), i => Assert.Equal("", i.CommandDisplay.Contains("提案しません") ? "" : i.CommandDisplay));
+        Assert.All(result.Items.Where(i => i.IsProtected), i => Assert.Contains("提案しません", i.CommandDisplay));
         Assert.DoesNotContain(result.Items, i => i.SuggestedCommand.Contains("delete-driver", StringComparison.OrdinalIgnoreCase)
             && StorageGuard.IsStorageName(i.Target));
 
