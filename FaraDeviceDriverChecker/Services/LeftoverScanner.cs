@@ -417,32 +417,53 @@ public class LeftoverScanner
         using var services = hklm.OpenSubKey(ServicesPath);
         if (services == null) return;
 
+        // 1 件の読み取り失敗でチェック全体を止めず、読めなかった件数を情報として報告する
+        var unreadable = 0;
         foreach (var name in services.GetSubKeyNames())
         {
-            using var key = services.OpenSubKey(name);
-            if (key == null) continue;
-
-            var type = key.GetValue("Type") as int? ?? 0;
-            if (type is not (ServiceTypeKernelDriver or ServiceTypeFileSystemDriver)) continue;
-
-            // 無効のものは影響が無いので対象外
-            var start = key.GetValue("Start") as int? ?? StartDisabled;
-            if (start >= StartDisabled) continue;
-
-            var image = PathResolver.ResolveDriverImagePath(ReadString(key, "ImagePath"), name, windir);
-            if (File.Exists(image)) continue;
-
-            var isStorage = StorageGuard.IsStorageName(name) || StorageGuard.IsStorageName(Path.GetFileName(image));
-            var regPath = $@"HKLM\{ServicesPath}\{name}";
-            var startText = start switch { StartBoot => "Boot", StartSystem => "System", StartAuto => "Auto", _ => "Manual" };
-            var loadedAtBoot = start <= StartAuto;
-            Add(CatService, loadedAtBoot ? LeftoverSeverity.Review : LeftoverSeverity.Caution,
-                $"実体の無いドライバーのサービス登録: {name}", regPath,
-                $"開始={startText} / ドライバーファイルが見つかりません: {image}。" +
-                (loadedAtBoot ? "起動時に読み込まれる設定のため、起動エラーの原因になり得ます。" : "") +
-                (isStorage ? "ストレージ系のため、手動で削除しないでください。" : ""),
-                isStorage ? "" : DeleteWithBackupCommand(regPath, $"backup-service-{name}"), isStorage);
+            try
+            {
+                CheckKernelDriverService(services, name, windir);
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException or SecurityException)
+            {
+                unreadable++;
+            }
         }
+
+        if (unreadable > 0)
+        {
+            Add(CatInfo, LeftoverSeverity.Info, $"読み取れないサービス登録が{unreadable}件あります",
+                $@"HKLM\{ServicesPath}",
+                "アクセスが拒否されたため確認できませんでした。管理者として起動し直すと確認できる場合があります。");
+        }
+    }
+
+    private void CheckKernelDriverService(RegistryKey services, string name, string windir)
+    {
+        using var key = services.OpenSubKey(name);
+        if (key == null) return;
+
+        var type = key.GetValue("Type") as int? ?? 0;
+        if (type is not (ServiceTypeKernelDriver or ServiceTypeFileSystemDriver)) return;
+
+        // 無効のものは影響が無いので対象外
+        var start = key.GetValue("Start") as int? ?? StartDisabled;
+        if (start >= StartDisabled) return;
+
+        var image = PathResolver.ResolveDriverImagePath(ReadString(key, "ImagePath"), name, windir);
+        if (File.Exists(image)) return;
+
+        var isStorage = StorageGuard.IsStorageName(name) || StorageGuard.IsStorageName(Path.GetFileName(image));
+        var regPath = $@"HKLM\{ServicesPath}\{name}";
+        var startText = start switch { StartBoot => "Boot", StartSystem => "System", StartAuto => "Auto", _ => "Manual" };
+        var loadedAtBoot = start <= StartAuto;
+        Add(CatService, loadedAtBoot ? LeftoverSeverity.Review : LeftoverSeverity.Caution,
+            $"実体の無いドライバーのサービス登録: {name}", regPath,
+            $"開始={startText} / ドライバーファイルが見つかりません: {image}。" +
+            (loadedAtBoot ? "起動時に読み込まれる設定のため、起動エラーの原因になり得ます。" : "") +
+            (isStorage ? "ストレージ系のため、手動で削除しないでください。" : ""),
+            isStorage ? "" : DeleteWithBackupCommand(regPath, $"backup-service-{name}"), isStorage);
     }
 
     // ---- フォルダー ----
