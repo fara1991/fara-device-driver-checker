@@ -54,19 +54,12 @@
                 </Grid.RowDefinitions>
 
                 <!-- ヘッダー -->
-                <materialDesign:Card Grid.Row="0" Padding="16" Margin="0,0,0,16">
+                <Grid Grid.Row="0" Margin="0,0,0,8">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-
-                        <StackPanel Grid.Column="0" Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="Devices" Width="32" Height="32" VerticalAlignment="Center"
-                                                     Foreground="{DynamicResource PrimaryHueMidBrush}" />
-                            <TextBlock Text="Windowsチェッカー" FontSize="20" FontWeight="Bold"
-                                       VerticalAlignment="Center" Margin="12,0,0,0" />
-                        </StackPanel>
 
                         <StackPanel Grid.Column="1" Orientation="Horizontal">
                             <Button AutomationProperties.Name="診断結果をエクスポート" Command="{Binding ExportCommand}" Margin="0,0,8,0"
@@ -85,7 +78,7 @@
                             </Button>
                         </StackPanel>
                     </Grid>
-                </materialDesign:Card>
+                </Grid>
 
                 <!-- メインエリア -->
                 <TabControl Grid.Row="1">
