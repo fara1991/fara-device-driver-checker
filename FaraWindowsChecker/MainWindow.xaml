@@ -1,0 +1,488 @@
+<Window x:Class="FaraWindowsChecker.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:vm="clr-namespace:FaraWindowsChecker.ViewModels"
+        mc:Ignorable="d"
+        Title="FaraWindowsChecker" Height="860" Width="1280" MinHeight="640" MinWidth="900"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource MaterialDesign.Brush.Background}"
+        TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
+        TextElement.FontWeight="Regular"
+        TextElement.FontSize="13"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="Auto"
+        FontFamily="Segoe UI, Yu Gothic UI, Meiryo UI">
+
+    <Window.DataContext>
+        <vm:MainViewModel />
+    </Window.DataContext>
+
+    <Window.InputBindings>
+        <KeyBinding Key="E" Modifiers="Ctrl" Command="{Binding ExportCommand}" />
+        <KeyBinding Key="F5" Command="{Binding RescanCommand}" />
+        <KeyBinding Key="D1" Modifiers="Ctrl" Command="{Binding ShowDriversTabCommand}" />
+        <KeyBinding Key="D2" Modifiers="Ctrl" Command="{Binding ShowLeftoverTabCommand}" />
+        <KeyBinding Key="C" Modifiers="Ctrl+Shift" Command="{Binding CopyCommandTextCommand}" />
+    </Window.InputBindings>
+
+    <Window.CommandBindings>
+        <CommandBinding Command="ApplicationCommands.Find" Executed="FindExecuted" />
+    </Window.CommandBindings>
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+        <!-- 列見出しの文字色を濃くして、コントラストを4.5:1以上にする -->
+        <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource MaterialDesignDataGridColumnHeader}">
+            <Setter Property="Foreground" Value="#595959" />
+        </Style>
+
+        <!-- 長い文字列は省略記号で切り、全文をToolTipで見られるようにする -->
+        <!-- 詳細パネルの小見出し -->
+        <Style x:Key="SectionHeader" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#4527A0" />
+            <Setter Property="Margin" Value="0,12,0,3" />
+        </Style>
+
+        <Style x:Key="CellEllipsis" TargetType="TextBlock">
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="ToolTip" Value="{Binding RelativeSource={RelativeSource Self}, Path=Text}" />
+        </Style>
+    </Window.Resources>
+
+    <materialDesign:DialogHost>
+        <DockPanel>
+        <Menu DockPanel.Dock="Top" Padding="4,0">
+            <MenuItem Header="ファイル(_F)">
+                <MenuItem Header="エクスポート(_E)…" Command="{Binding ExportCommand}" InputGestureText="Ctrl+E">
+                    <MenuItem.Icon><materialDesign:PackIcon Kind="ContentSave" /></MenuItem.Icon>
+                </MenuItem>
+                <Separator />
+                <MenuItem Header="終了(_X)" Command="{Binding ExitCommand}" InputGestureText="Alt+F4" />
+            </MenuItem>
+
+            <MenuItem Header="編集(_E)">
+                <MenuItem Header="案内コマンドをコピー(_C)" Command="{Binding CopyCommandTextCommand}" InputGestureText="Ctrl+Shift+C">
+                    <MenuItem.Icon><materialDesign:PackIcon Kind="ContentCopy" /></MenuItem.Icon>
+                </MenuItem>
+                <Separator />
+                <MenuItem Header="キーワードで絞り込み(_F)" Command="ApplicationCommands.Find" InputGestureText="Ctrl+F">
+                    <MenuItem.Icon><materialDesign:PackIcon Kind="Magnify" /></MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
+
+            <MenuItem Header="表示(_V)">
+                <MenuItem Header="ドライバー診断(_1)" Command="{Binding ShowDriversTabCommand}" InputGestureText="Ctrl+1" />
+                <MenuItem Header="アンインストール漏れチェック(_2)" Command="{Binding ShowLeftoverTabCommand}" InputGestureText="Ctrl+2" />
+                <Separator />
+                <MenuItem Header="フィルターをクリア(_L)" Command="{Binding ClearFilterCommand}" />
+            </MenuItem>
+
+            <MenuItem Header="ツール(_T)">
+                <MenuItem Header="表示中のタブを再スキャン(_R)" Command="{Binding RescanCommand}" InputGestureText="F5">
+                    <MenuItem.Icon><materialDesign:PackIcon Kind="Refresh" /></MenuItem.Icon>
+                </MenuItem>
+                <Separator />
+                <MenuItem Header="選択したカテゴリをスキャン(_S)" Command="{Binding ScanCommand}" />
+                <MenuItem Header="残骸をチェック(_C)" Command="{Binding ScanLeftoverCommand}" />
+                <Separator />
+                <MenuItem Header="ドライバーを更新(_U)" Command="{Binding RunUpdateCommand}">
+                    <MenuItem.Icon><materialDesign:PackIcon Kind="Download" /></MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Windows Updateの設定を開く(_W)" Command="{Binding OpenSettingsCommand}">
+                    <MenuItem.Icon><materialDesign:PackIcon Kind="Cog" /></MenuItem.Icon>
+                </MenuItem>
+                <Separator />
+                <MenuItem Header="管理者として再起動(_A)" Command="{Binding RestartAsAdminCommand}" />
+            </MenuItem>
+
+            <MenuItem Header="ヘルプ(_H)">
+                <MenuItem Header="GitHubのリポジトリを開く(_G)" Command="{Binding OpenRepositoryCommand}" />
+                <MenuItem Header="問題を報告する(_I)" Command="{Binding OpenIssuesCommand}" />
+                <Separator />
+                <MenuItem Header="バージョン情報(_V)…" Command="{Binding ShowAboutCommand}" />
+            </MenuItem>
+        </Menu>
+        <Grid>
+            <!-- メインコンテンツ -->
+            <Grid Margin="16">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- メインエリア -->
+                <TabControl Grid.Row="0" SelectedIndex="{Binding SelectedTabIndex}">
+                <TabItem Header="ドライバー診断">
+                <Grid Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="180" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- カテゴリリスト -->
+                    <materialDesign:Card Grid.Column="0" Padding="8" Margin="0,0,16,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Text="カテゴリ" FontWeight="Bold" Margin="8,0,0,8" />
+
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <CheckBox Content="すべて"
+                                          IsChecked="{Binding IsAllSelected}"
+                                          IsEnabled="{Binding IsNotLoading}"
+                                          Margin="0,4"
+                                          FontWeight="Bold"
+                                          Style="{StaticResource MaterialDesignCheckBox}" />
+                                <Separator Margin="0,4" />
+                                <ItemsControl ItemsSource="{Binding Categories}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <CheckBox Content="{Binding Name}"
+                                                      IsChecked="{Binding IsSelected}"
+                                                      IsEnabled="{Binding DataContext.IsNotLoading, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                      Margin="0,4"
+                                                      Style="{StaticResource MaterialDesignCheckBox}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                            </ScrollViewer>
+
+                            <StackPanel Grid.Row="2" Margin="0,8,0,0">
+                                <Button AutomationProperties.Name="選択したカテゴリをスキャン" Command="{Binding ScanCommand}"
+                                        Style="{StaticResource MaterialDesignRaisedButton}"
+                                        Margin="0,0,0,8">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Magnify" VerticalAlignment="Center" />
+                                        <TextBlock Text="スキャン" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                                <Button AutomationProperties.Name="ドライバーを更新" Command="{Binding RunUpdateCommand}"
+                                        Style="{StaticResource MaterialDesignRaisedDarkButton}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Download" VerticalAlignment="Center" />
+                                        <TextBlock Text="ドライバーを更新" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </materialDesign:Card>
+
+                    <!-- デバイス一覧 -->
+                    <materialDesign:Card Grid.Column="1" Padding="0">
+                    <DataGrid AutomationProperties.Name="デバイスの一覧" ItemsSource="{Binding Devices}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              HeadersVisibility="Column"
+                              GridLinesVisibility="Horizontal"
+                              BorderThickness="0">
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="状態" Width="70">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <materialDesign:PackIcon Width="24" Height="24" HorizontalAlignment="Center">
+                                            <materialDesign:PackIcon.Style>
+                                                <Style TargetType="materialDesign:PackIcon">
+                                                    <Setter Property="Kind" Value="CheckCircle" />
+                                                    <Setter Property="Foreground" Value="Green" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding HasProblem}" Value="True">
+                                                            <Setter Property="Kind" Value="AlertCircle" />
+                                                            <Setter Property="Foreground" Value="Red" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </materialDesign:PackIcon.Style>
+                                        </materialDesign:PackIcon>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="デバイス名" Binding="{Binding Name}" Width="*"
+                                                ElementStyle="{StaticResource CellEllipsis}" />
+                            <DataGridTextColumn Header="製造元" Binding="{Binding Manufacturer}" Width="150"
+                                                ElementStyle="{StaticResource CellEllipsis}" />
+                            <DataGridTextColumn Header="クラス" Binding="{Binding Class}" Width="120"
+                                                ElementStyle="{StaticResource CellEllipsis}" />
+                            <DataGridTextColumn Header="バージョン" Binding="{Binding DriverVersion}" Width="120"
+                                                ElementStyle="{StaticResource CellEllipsis}" />
+                            <DataGridTextColumn Header="日付" Binding="{Binding DriverDate}" Width="120"
+                                                ElementStyle="{StaticResource CellEllipsis}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </materialDesign:Card>
+                </Grid>
+                </TabItem>
+
+                <TabItem Header="アンインストール漏れチェック">
+                    <Grid Margin="0,12,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" MinHeight="100" />
+                        </Grid.RowDefinitions>
+
+                        <materialDesign:Card Grid.Row="0" Padding="12" Margin="0,0,0,12">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button AutomationProperties.Name="残骸をチェック" Command="{Binding ScanLeftoverCommand}"
+                                            Style="{StaticResource MaterialDesignRaisedButton}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="Magnify" VerticalAlignment="Center" />
+                                            <TextBlock Text="残骸をチェック" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button AutomationProperties.Name="管理者として再起動" Command="{Binding RestartAsAdminCommand}" Margin="12,0,0,0"
+                                            Style="{StaticResource MaterialDesignOutlinedButton}">
+                                        <TextBlock Text="管理者として再起動" />
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock Text="{Binding AdminStatus}" Margin="0,8,0,0" Opacity="0.7" />
+                                <Expander AutomationProperties.Name="読み取り専用であることの詳細" Header="このチェックは読み取り専用です（詳細）" Margin="0,4,0,0" FontSize="12"
+                                          Background="Transparent"
+                                          materialDesign:ExpanderAssist.HorizontalHeaderPadding="0"
+                                          materialDesign:ExpanderAssist.VerticalHeaderPadding="2">
+                                    <TextBlock TextWrapping="Wrap" Margin="24,4,0,4" Opacity="0.7"
+                                               Text="削除などは自動で実行しません。案内コマンドは内容を確認し、管理者権限で手動実行してください。ストレージ系ドライバー（iastorvdなど）は削除対象として提案しません。" />
+                                </Expander>
+                                <WrapPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                    <TextBox x:Name="FilterTextBox" AutomationProperties.Name="キーワードで絞り込み" Width="260" VerticalAlignment="Center" Margin="0,0,12,8"
+                                             materialDesign:HintAssist.Hint="キーワードで絞り込み（空白区切りでAND）"
+                                             materialDesign:HintAssist.HintOpacity="0.85"
+                                             Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}" />
+                                    <ComboBox AutomationProperties.Name="重要度で絞り込み" Width="110" Margin="0,0,12,8" VerticalAlignment="Center"
+                                              materialDesign:HintAssist.Hint="重要度"
+                                              ItemsSource="{Binding SeverityOptions}"
+                                              SelectedItem="{Binding FilterSeverity}" />
+                                    <ComboBox AutomationProperties.Name="分類で絞り込み" Width="180" Margin="0,0,12,8" VerticalAlignment="Center"
+                                              materialDesign:HintAssist.Hint="分類"
+                                              ItemsSource="{Binding CategoryOptions}"
+                                              SelectedItem="{Binding FilterCategory}" />
+                                    <Button AutomationProperties.Name="フィルターをクリア" Command="{Binding ClearFilterCommand}" Margin="0,0,16,8"
+                                            Style="{StaticResource MaterialDesignOutlinedButton}">
+                                        <TextBlock Text="クリア" />
+                                    </Button>
+                                    <TextBlock Text="{Binding FilterSummary}" Margin="0,0,0,8" VerticalAlignment="Center" Opacity="0.7" />
+                                </WrapPanel>
+                            </StackPanel>
+                        </materialDesign:Card>
+
+                        <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" MinWidth="440" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="440" MinWidth="300" />
+                        </Grid.ColumnDefinitions>
+                        <materialDesign:Card Grid.Column="0" Padding="0">
+                            <Grid>
+                            <DataGrid AutomationProperties.Name="残骸チェックの検出結果の一覧" ItemsSource="{Binding LeftoverView}"
+                                      SelectedItem="{Binding SelectedLeftover}"
+                                      AutoGenerateColumns="False"
+                                      IsReadOnly="True"
+                                      SelectionMode="Single"
+                                      CanUserAddRows="False"
+                                      HeadersVisibility="Column"
+                                      GridLinesVisibility="Horizontal"
+                                      BorderThickness="0">
+                                <DataGrid.Columns>
+                                    <DataGridTemplateColumn Header="重要度" Width="100">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Width="18" Height="18" VerticalAlignment="Center">
+                                                        <materialDesign:PackIcon.Style>
+                                                            <Style TargetType="materialDesign:PackIcon">
+                                                                <Setter Property="Kind" Value="Information" />
+                                                                <Setter Property="Foreground" Value="#616161" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Severity}" Value="Review">
+                                                                        <Setter Property="Kind" Value="AlertCircle" />
+                                                                        <Setter Property="Foreground" Value="#C62828" />
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Severity}" Value="Caution">
+                                                                        <Setter Property="Kind" Value="Alert" />
+                                                                        <Setter Property="Foreground" Value="#E65100" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </materialDesign:PackIcon.Style>
+                                                    </materialDesign:PackIcon>
+                                                    <TextBlock Text="{Binding SeverityDisplay}" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Header="分類" Binding="{Binding Category}" Width="150"
+                                                        ElementStyle="{StaticResource CellEllipsis}" />
+                                    <DataGridTextColumn Header="内容" Binding="{Binding Title}" Width="*"
+                                                        ElementStyle="{StaticResource CellEllipsis}" />
+                                    <DataGridTextColumn Header="対応の目安" Binding="{Binding ActionSummary}" Width="140"
+                                                        ElementStyle="{StaticResource CellEllipsis}" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                            <TextBlock Text="{Binding LeftoverEmptyMessage}" TextWrapping="Wrap" TextAlignment="Center"
+                                       VerticalAlignment="Center" HorizontalAlignment="Center" Margin="16,32,16,0" Opacity="0.7"
+                                       IsHitTestVisible="False"
+                                       Visibility="{Binding IsLeftoverListEmpty, Converter={StaticResource BoolToVis}}" />
+                            </Grid>
+                        </materialDesign:Card>
+
+                        <GridSplitter AutomationProperties.Name="一覧と詳細の境界（ドラッグで幅を変更）" Grid.Column="1" Width="12"
+                                      HorizontalAlignment="Center" VerticalAlignment="Stretch"
+                                      ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
+                                      Background="Transparent" Cursor="SizeWE"
+                                      ToolTip="ドラッグして、一覧と詳細の幅を変えられます" />
+
+                        <materialDesign:Card Grid.Column="2" Padding="16,12">
+                            <Grid>
+                                <TextBlock Text="一覧の行を選ぶと、状態・影響・対応と、案内コマンドがここに表示されます。"
+                                           TextWrapping="Wrap" TextAlignment="Center"
+                                           VerticalAlignment="Center" HorizontalAlignment="Center" Opacity="0.7">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedLeftover}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <Grid DataContext="{Binding SelectedLeftover}">
+                                    <Grid.Style>
+                                        <Style TargetType="Grid">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Grid.Style>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <StackPanel Margin="0,0,8,0">
+                                            <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontSize="15" FontWeight="Bold" />
+                                            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                                <materialDesign:PackIcon Width="16" Height="16" VerticalAlignment="Center">
+                                                    <materialDesign:PackIcon.Style>
+                                                        <Style TargetType="materialDesign:PackIcon">
+                                                            <Setter Property="Kind" Value="Information" />
+                                                            <Setter Property="Foreground" Value="#616161" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Severity}" Value="Review">
+                                                                    <Setter Property="Kind" Value="AlertCircle" />
+                                                                    <Setter Property="Foreground" Value="#C62828" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Severity}" Value="Caution">
+                                                                    <Setter Property="Kind" Value="Alert" />
+                                                                    <Setter Property="Foreground" Value="#E65100" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </materialDesign:PackIcon.Style>
+                                                </materialDesign:PackIcon>
+                                                <TextBlock Text="{Binding SeverityDisplay}" Margin="6,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold" />
+                                                <TextBlock Text="{Binding Category, StringFormat=' / {0}'}" VerticalAlignment="Center" Opacity="0.7" />
+                                            </StackPanel>
+
+                                            <TextBlock Style="{StaticResource SectionHeader}" Text="今の状態" />
+                                            <TextBlock Text="{Binding Detail}" TextWrapping="Wrap" />
+
+                                            <StackPanel>
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Impact}" Value="">
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+                                                <TextBlock Style="{StaticResource SectionHeader}" Text="放置した場合の影響" />
+                                                <TextBlock Text="{Binding Impact}" TextWrapping="Wrap" />
+                                            </StackPanel>
+
+                                            <StackPanel>
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Action}" Value="">
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+                                                <TextBlock Style="{StaticResource SectionHeader}" Text="推奨する対応" />
+                                                <TextBlock Text="{Binding ActionSummary}" FontWeight="Bold" Margin="0,0,0,2" />
+                                                <TextBlock Text="{Binding Action}" TextWrapping="Wrap" />
+                                            </StackPanel>
+
+                                            <TextBlock Style="{StaticResource SectionHeader}" Text="案内コマンド（自動実行はされません）" />
+                                            <TextBox AutomationProperties.Name="案内コマンド" Text="{Binding CommandDisplay, Mode=OneWay}" IsReadOnly="True"
+                                                     FontFamily="Consolas" TextWrapping="NoWrap" HorizontalScrollBarVisibility="Auto" />
+                                            <TextBlock Style="{StaticResource SectionHeader}" Text="対象" />
+                                            <TextBox AutomationProperties.Name="対象" Text="{Binding Target, Mode=OneWay}" IsReadOnly="True"
+                                                     TextWrapping="Wrap" BorderThickness="0" Padding="0" />
+
+                                        </StackPanel>
+                                    </ScrollViewer>
+                                    <Button AutomationProperties.Name="案内コマンドをコピー" Grid.Row="1" HorizontalAlignment="Left" Margin="0,8,0,0"
+                                            Command="{Binding DataContext.CopyCommandTextCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            Style="{StaticResource MaterialDesignOutlinedButton}">
+                                        <TextBlock Text="コマンドをコピー" />
+                                    </Button>
+                                </Grid>
+                            </Grid>
+                        </materialDesign:Card>
+                        </Grid>
+                    </Grid>
+                </TabItem>
+                </TabControl>
+
+                <!-- ステータスバー -->
+                <materialDesign:Card Grid.Row="1" Padding="12" Margin="0,16,0,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <ProgressBar Grid.Column="0" Width="24" Height="24"
+                                     Style="{StaticResource MaterialDesignCircularProgressBar}"
+                                     IsIndeterminate="True"
+                                     Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"
+                                     Margin="0,0,12,0" />
+
+                        <TextBlock Grid.Column="1" Text="{Binding StatusMessage}" VerticalAlignment="Center" />
+                    </Grid>
+                </materialDesign:Card>
+            </Grid>
+
+            <!-- ローディングオーバーレイ -->
+            <Grid Background="#80000000" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <ProgressBar Style="{StaticResource MaterialDesignCircularProgressBar}"
+                                 IsIndeterminate="True" Width="50" Height="50" />
+                    <TextBlock Text="処理中…" Foreground="White" Margin="0,16,0,0"
+                               FontSize="16" HorizontalAlignment="Center" />
+                </StackPanel>
+            </Grid>
+        </Grid>
+        </DockPanel>
+    </materialDesign:DialogHost>
+</Window>

@@ -1,4 +1,4 @@
-namespace FaraDeviceDriverChecker.Models;
+namespace FaraWindowsChecker.Models;
 
 using System.ComponentModel;
 using System.Runtime.CompilerServices;

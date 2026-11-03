@@ -7,6 +7,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- 手元のビルドの既定のバージョン。リリースでは、タグ（v1.2.3）から -p:Version=1.2.3 で上書きする -->
+    <Version>0.0.0-dev</Version>
+    <!-- ビルドのコミットの番号を、アプリ（バージョン情報）に埋め込まない -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 
   <ItemGroup>

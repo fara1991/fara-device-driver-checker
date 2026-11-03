@@ -1,4 +1,8 @@
+using System.Runtime.InteropServices;
 using System.Windows;
+
+// ネイティブDLL(msi.dllなど)をSystem32からだけ読み込む。アプリのフォルダーに同名のDLLを置かれても読み込まない
+[assembly: DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
 
 [assembly:ThemeInfo(
     ResourceDictionaryLocation.None,            //where theme specific resource dictionaries are located
