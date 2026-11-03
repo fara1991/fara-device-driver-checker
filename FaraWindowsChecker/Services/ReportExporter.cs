@@ -75,7 +75,6 @@ public static class ReportExporter
         {
             app = AppInfo.Name,
             version = AppInfo.Version,
-            commit = AppInfo.Commit,
             exportedAt = DateTime.Now,
             os = Environment.OSVersion.ToString(),
             devices = devices.Select(d => new

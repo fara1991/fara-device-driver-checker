@@ -4,7 +4,8 @@ using System.Reflection;
 
 /// <summary>
 /// アプリの名前とバージョン。バージョンは、ビルド時に埋め込まれた値（リリースでは、タグ v1.2.3 の 1.2.3）を読む。
-/// 手元のビルドでは、既定の「0.0.0-dev」になり、「開発版」と表示する。
+/// 手元のビルドは、既定の「0.0.0-dev」になり、「開発版」と表示する。
+/// コミットの番号は、アプリに残さない（csproj の IncludeSourceRevisionInInformationalVersion を false にしている）。
 /// </summary>
 public static class AppInfo
 {
@@ -13,38 +14,27 @@ public static class AppInfo
     /// <summary>バージョンを指定せずにビルドしたとき（手元のビルド）の値。csproj の Version と同じにする。</summary>
     public const string DevelopmentVersion = "0.0.0-dev";
 
-    private const int ShortCommitLength = 7;
-
     /// <summary>「1.2.3」のような版の番号。</summary>
-    public static string Version { get; } = ParseInformationalVersion(ReadInformationalVersion()).Version;
+    public static string Version { get; } = ParseInformationalVersion(ReadInformationalVersion());
 
-    /// <summary>ビルドしたコミット（先頭の7文字）。分からないときは null。</summary>
-    public static string? Commit { get; } = ParseInformationalVersion(ReadInformationalVersion()).Commit;
-
-    /// <summary>画面に表示するバージョン。例:「v1.2.3（コミット: abc1234）」「開発版（コミット: abc1234）」</summary>
-    public static string DisplayVersion { get; } = FormatDisplayVersion(Version, Commit);
+    /// <summary>画面に表示するバージョン。例:「v1.2.3」「開発版」</summary>
+    public static string DisplayVersion { get; } = FormatDisplayVersion(Version);
 
     /// <summary>
-    /// 「1.2.3+abcdef0123…」の形のバージョン情報を、版の番号とコミットに分ける。
-    /// 読めないときは、開発版として扱う。
+    /// バージョン情報から、版の番号だけを取り出す。読めないときは、開発版として扱う。
+    /// 「+」以降（ビルドのメタデータ）は、使わない。
     /// </summary>
-    public static (string Version, string? Commit) ParseInformationalVersion(string? informationalVersion)
+    public static string ParseInformationalVersion(string? informationalVersion)
     {
-        if (string.IsNullOrWhiteSpace(informationalVersion)) return (DevelopmentVersion, null);
+        if (string.IsNullOrWhiteSpace(informationalVersion)) return DevelopmentVersion;
 
-        var parts = informationalVersion.Trim().Split('+', 2);
-        var version = string.IsNullOrWhiteSpace(parts[0]) ? DevelopmentVersion : parts[0].Trim();
-        var commit = parts.Length > 1 && parts[1].Length > 0
-            ? parts[1][..Math.Min(ShortCommitLength, parts[1].Length)]
-            : null;
-        return (version, commit);
+        var version = informationalVersion.Split('+', 2)[0].Trim();
+        return version.Length == 0 ? DevelopmentVersion : version;
     }
 
-    public static string FormatDisplayVersion(string version, string? commit)
-    {
-        var label = version == DevelopmentVersion ? "開発版" : $"v{version}";
-        return commit == null ? label : $"{label}（コミット: {commit}）";
-    }
+    /// <summary>表示用のバージョン。リリースは先頭に「v」を付ける（v1.2.3）。開発版（0.0.0-dev）は「開発版」と表示する。</summary>
+    public static string FormatDisplayVersion(string version)
+        => version == DevelopmentVersion ? "開発版" : $"v{version}";
 
     private static string? ReadInformationalVersion()
         => typeof(AppInfo).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
