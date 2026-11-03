@@ -12,6 +12,7 @@ using System.Windows.Input;
 using Microsoft.Win32;
 using Models;
 using Services;
+using Utilities;
 
 public class MainViewModel : INotifyPropertyChanged
 {
@@ -261,7 +262,7 @@ public class MainViewModel : INotifyPropertyChanged
 
     private static void ShowAbout()
         => MessageBox.Show(
-            "FaraWindowsChecker\r\n\r\n" +
+            $"{AppInfo.Name}\r\nバージョン: {AppInfo.DisplayVersion}\r\n\r\n" +
             "Windowsのデバイスドライバーの診断と、アンインストール後の残骸の検出を行うツールです。\r\n" +
             "検出は読み取り専用で、削除などは自動で実行しません。\r\n\r\n" +
             $"{RepositoryUrl}\r\nMIT License",

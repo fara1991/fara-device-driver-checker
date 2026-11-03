@@ -169,7 +169,8 @@ FaraWindowsChecker/
 │   ├── StorageGuard.cs      # ストレージ系の保護判定
 │   ├── CommandBuilder.cs    # 案内コマンドの組み立て
 │   ├── CommandGuard.cs      # 案内コマンドに埋め込む値の検証
-│   └── PathResolver.cs      # コマンドラインやImagePathからのパス解決
+│   ├── PathResolver.cs      # コマンドラインやImagePathからのパス解決
+│   └── AppInfo.cs           # アプリ名とバージョン(ビルドに埋め込まれた値を読む)
 ├── MainWindow.xaml          # メインウィンドウUI
 └── App.xaml                 # アプリケーション設定
 ```
@@ -205,6 +206,12 @@ dotnet build
 # リリースビルド（単一実行ファイル）
 dotnet publish FaraWindowsChecker/FaraWindowsChecker.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o ./publish
 ```
+
+### バージョン
+
+リリースのバージョンは、タグ（例: `v1.2.3`）から、ビルド時に自動で埋め込まれます（GitHub Actionsが `-p:Version=1.2.3` を指定します）。
+メニューの「ヘルプ」→「バージョン情報」と、エクスポートの先頭に、バージョンとコミットが表示されます。
+手元でビルドしたものは、「開発版」と表示されます。
 
 ## サポート
 

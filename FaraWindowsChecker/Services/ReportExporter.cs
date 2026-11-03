@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using Models;
+using Utilities;
 
 /// <summary>診断結果（ドライバー診断・残骸チェック）をテキストまたはJSONに書き出す。</summary>
 public static class ReportExporter
@@ -17,7 +18,8 @@ public static class ReportExporter
     public static string ToText(IReadOnlyList<DeviceInfo> devices, LeftoverScanResult? leftover)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("FaraWindowsChecker診断レポート");
+        sb.AppendLine($"{AppInfo.Name}診断レポート");
+        sb.AppendLine($"バージョン: {AppInfo.DisplayVersion}");
         sb.AppendLine($"出力日時: {DateTime.Now:yyyy/MM/dd HH:mm:ss}");
         sb.AppendLine($"OS: {Environment.OSVersion}");
         sb.AppendLine();
@@ -71,6 +73,9 @@ public static class ReportExporter
     {
         var report = new
         {
+            app = AppInfo.Name,
+            version = AppInfo.Version,
+            commit = AppInfo.Commit,
             exportedAt = DateTime.Now,
             os = Environment.OSVersion.ToString(),
             devices = devices.Select(d => new
